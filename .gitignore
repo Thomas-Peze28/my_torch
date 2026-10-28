@@ -1,0 +1,7 @@
+document
+dataset
+.venv/
+.vscode/
+__pycache__/
+.pytest_cache/
+.claude/
