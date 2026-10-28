@@ -1,0 +1,33 @@
+# Run the build and the tests in the same Docker image as the Epitech grader.
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  tests:
+    name: Build and test
+    runs-on: ubuntu-latest
+    container: epitechcontent/epitest-docker
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pytest
+        run: python3 -m pip install --quiet --break-system-packages --root-user-action=ignore pytest
+
+      - name: Build
+        run: make re
+
+      - name: Check the binary
+        run: |
+          test -x my_torch_analyzer
+          ./my_torch_analyzer --help
+
+      - name: Run the tests
+        run: make tests_run
+
+      - name: Clean
+        run: make fclean
