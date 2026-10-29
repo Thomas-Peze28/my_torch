@@ -13,7 +13,7 @@ jobs:
     runs-on: self-hosted
     container: epitechcontent/epitest-docker
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install pytest
         run: python3 -m pip install --quiet --break-system-packages --root-user-action=ignore pytest
