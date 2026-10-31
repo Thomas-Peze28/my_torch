@@ -74,3 +74,13 @@ class Linear(Layer):
             [(weights, weights_gradient), (bias, bias_gradient)].
         """
         return [(self.weights, self.weights_gradient), (self.bias, self.bias_gradient)]
+
+    def config(self) -> dict:
+        """Describe the layer, so that it can be saved and built again.
+
+        Returns:
+            {"type": "Linear", "input_size": ..., "output_size": ...}, read
+            from the shape of the weights.
+        """
+        output_size, input_size = self.weights.shape
+        return {"type": "Linear", "input_size": input_size, "output_size": output_size}

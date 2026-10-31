@@ -52,3 +52,14 @@ class Layer(ABC):
             same shape.
         """
         return []
+
+    def config(self) -> dict:
+        """Describe the layer, so that it can be saved and built again.
+
+        Layers without settings, like activations, keep this default and
+        only give the name of their class.
+
+        Returns:
+            A dictionary with at least the "type" key, e.g. {"type": "ReLU"}.
+        """
+        return {"type": type(self).__name__}

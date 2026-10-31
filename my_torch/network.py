@@ -2,6 +2,7 @@
 Neural network
 """
 
+import json
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -11,6 +12,9 @@ from my_torch.losses import Loss
 
 if TYPE_CHECKING:
     from my_torch.optimizers import Optimizer
+
+FILE_FORMAT = "my_torch"
+FILE_VERSION = 1.0
 
 
 class Network:
@@ -23,18 +27,23 @@ class Network:
 
     Args:
         layers: The layers of the network, from the first to the last.
+        settings: Free settings saved with the network, e.g. how to train
+            it. The library only stores them; they must be JSON-friendly
+            (numbers, strings, lists, dictionaries).
 
     Attributes:
         layers: The list of layers.
+        settings: The settings given at creation, or an empty dictionary.
 
     Raises:
         ValueError: If the list of layers is empty.
     """
 
-    def __init__(self, layers: list[Layer]) -> None:
+    def __init__(self, layers: list[Layer], settings: dict | None = None) -> None:
         self.layers = list(layers)
         if not self.layers:
             raise ValueError("A network needs at least one layer")
+        self.settings = dict(settings) if settings else {}
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Pass the inputs through every layer, from the first to the last.
@@ -145,3 +154,27 @@ class Network:
                 total_loss += batch_loss * len(batch)
             history.append(total_loss / len(inputs))
         return history
+
+    def save(self, path: str) -> None:
+        """Write the network to one file, to load it again later.
+
+        The file is a compressed NumPy archive holding:
+        - "architecture": JSON text with the file format, its version, the
+          description of every layer and the settings.
+        - "layer_<i>_param_<j>": the j-th learned array of the i-th layer.
+
+        Args:
+            path: Where to write the file, e.g. "my_torch_network.nn".
+        """
+        architecture = {
+            "format": FILE_FORMAT,
+            "version": FILE_VERSION,
+            "layers": [layer.config() for layer in self.layers],
+            "settings": self.settings,
+        }
+        arrays = {"architecture": np.array(json.dumps(architecture))}
+        for layer_index, layer in enumerate(self.layers):
+            for param_index, (value, _) in enumerate(layer.parameters()):
+                arrays[f"layer_{layer_index}_param_{param_index}"] = value
+        with open(path, "wb") as file:
+            np.savez_compressed(file, **arrays)
