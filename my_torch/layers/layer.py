@@ -4,6 +4,8 @@ Layer base class
 
 from abc import ABC, abstractmethod
 
+import numpy as np
+
 
 class Layer(ABC):
     """Base class of every layer of a network.
@@ -15,7 +17,7 @@ class Layer(ABC):
     """
 
     @abstractmethod
-    def forward(self, inputs):
+    def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Compute the outputs of the layer.
 
         Args:
@@ -26,7 +28,7 @@ class Layer(ABC):
         """
 
     @abstractmethod
-    def backward(self, output_error):
+    def backward(self, output_error: np.ndarray) -> np.ndarray:
         """Send the error back through the layer.
 
         Must be called after forward(), on the same batch.

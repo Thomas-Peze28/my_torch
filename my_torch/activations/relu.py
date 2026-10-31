@@ -14,10 +14,10 @@ class ReLU(Layer):
     it is fast, and the error goes back unchanged through positive values.
     """
 
-    def __init__(self):
-        self._last_positive = None
+    def __init__(self) -> None:
+        self._last_positive: np.ndarray | None = None
 
-    def forward(self, inputs):
+    def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Apply ReLU to every value.
 
         Args:
@@ -29,7 +29,7 @@ class ReLU(Layer):
         self._last_positive = inputs > 0
         return np.where(self._last_positive, inputs, 0.0)
 
-    def backward(self, output_error):
+    def backward(self, output_error: np.ndarray) -> np.ndarray:
         """Send the error back through ReLU.
 
         The error goes back unchanged where the input was positive, and is

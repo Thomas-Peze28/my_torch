@@ -28,15 +28,15 @@ class Linear(Layer):
             shape as bias. Filled by backward().
     """
 
-    def __init__(self, input_size, output_size, seed=None):
+    def __init__(self, input_size: int, output_size: int, seed: int | None = None) -> None:
         rng = np.random.default_rng(seed)
         self.weights = rng.uniform(-1.0, 1.0, size=(output_size, input_size))
         self.bias = np.zeros(output_size)
         self.weights_gradient = np.zeros_like(self.weights)
         self.bias_gradient = np.zeros_like(self.bias)
-        self._last_inputs = None
+        self._last_inputs: np.ndarray | None = None
 
-    def forward(self, inputs):
+    def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Compute the total of every neuron, for every example.
 
         Args:
@@ -49,7 +49,7 @@ class Linear(Layer):
         self._last_inputs = inputs
         return inputs @ self.weights.T + self.bias
 
-    def backward(self, output_error):
+    def backward(self, output_error: np.ndarray) -> np.ndarray:
         """Find how to change the weights, and send the error back.
 
         Like in the playground, a weight is blamed by its neuron's error

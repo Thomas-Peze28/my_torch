@@ -17,10 +17,10 @@ class MSELoss(Loss):
     big gaps much more than small ones.
     """
 
-    def __init__(self):
-        self._last_gaps = None
+    def __init__(self) -> None:
+        self._last_gaps: np.ndarray | None = None
 
-    def forward(self, predictions, targets):
+    def forward(self, predictions: np.ndarray, targets: np.ndarray) -> float:
         """Measure the average squared gap.
 
         Args:
@@ -33,7 +33,7 @@ class MSELoss(Loss):
         self._last_gaps = predictions - targets
         return float(np.mean(self._last_gaps ** 2))
 
-    def backward(self):
+    def backward(self) -> np.ndarray:
         """Return the error on each prediction.
 
         The derivative of gap squared is 2 * gap, divided by the number of

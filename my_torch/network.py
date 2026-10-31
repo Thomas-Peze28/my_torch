@@ -2,6 +2,10 @@
 Neural network
 """
 
+import numpy as np
+
+from my_torch.layers import Layer
+
 
 class Network:
     """A chain of layers, called one after the other.
@@ -21,12 +25,12 @@ class Network:
         ValueError: If the list of layers is empty.
     """
 
-    def __init__(self, layers):
+    def __init__(self, layers: list[Layer]) -> None:
         self.layers = list(layers)
         if not self.layers:
             raise ValueError("A network needs at least one layer")
 
-    def forward(self, inputs):
+    def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Pass the inputs through every layer, from the first to the last.
 
         Args:
@@ -40,7 +44,7 @@ class Network:
             outputs = layer.forward(outputs)
         return outputs
 
-    def backward(self, output_error):
+    def backward(self, output_error: np.ndarray) -> np.ndarray:
         """Send the error back through every layer, from the last to the first.
 
         Must be called after forward(), on the same batch. On the way, every

@@ -21,11 +21,11 @@ class CrossEntropyLoss(Loss):
     The targets are "one-hot": 1 for the right answer, 0 for the others.
     """
 
-    def __init__(self):
-        self._last_probabilities = None
-        self._last_targets = None
+    def __init__(self) -> None:
+        self._last_probabilities: np.ndarray | None = None
+        self._last_targets: np.ndarray | None = None
 
-    def forward(self, predictions, targets):
+    def forward(self, predictions: np.ndarray, targets: np.ndarray) -> float:
         """Measure how wrong the probabilities are.
 
         Args:
@@ -42,7 +42,7 @@ class CrossEntropyLoss(Loss):
         losses = -np.sum(targets * np.log(probabilities), axis=1)
         return float(losses.mean())
 
-    def backward(self):
+    def backward(self) -> np.ndarray:
         """Return the error on each probability.
 
         The error is -target / probability, divided by the batch size
