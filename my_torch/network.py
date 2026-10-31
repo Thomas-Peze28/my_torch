@@ -3,11 +3,13 @@ Neural network
 """
 
 import json
+import zipfile
 from typing import TYPE_CHECKING
 
 import numpy as np
 
-from my_torch.layers import Layer
+from my_torch.activations import ReLU, Sigmoid, Softmax
+from my_torch.layers import Layer, Linear
 from my_torch.losses import Loss
 
 if TYPE_CHECKING:
@@ -15,6 +17,8 @@ if TYPE_CHECKING:
 
 FILE_FORMAT = "my_torch"
 FILE_VERSION = 1.0
+
+LAYER_TYPES = {"Linear": Linear, "ReLU": ReLU, "Sigmoid": Sigmoid, "Softmax": Softmax}
 
 
 class Network:
@@ -178,3 +182,60 @@ class Network:
                 arrays[f"layer_{layer_index}_param_{param_index}"] = value
         with open(path, "wb") as file:
             np.savez_compressed(file, **arrays)
+
+    @classmethod
+    def load(cls, path: str) -> "Network":
+        """Build a network from a file written by save().
+
+        Args:
+            path: The file to read.
+
+        Returns:
+            A new network with the same layers, learned arrays and settings
+            as the saved one.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the file is not a valid my_torch network file.
+        """
+        try:
+            archive = np.load(path, allow_pickle=False)
+        except FileNotFoundError:
+            raise
+        except (OSError, ValueError, zipfile.BadZipFile):
+            raise ValueError(f"{path}: not a my_torch network file") from None
+        if not isinstance(archive, np.lib.npyio.NpzFile):
+            raise ValueError(f"{path}: not a my_torch network file")
+        with archive:
+            try:
+                return cls._from_archive(archive)
+            except (KeyError, TypeError, AttributeError, ValueError) as error:
+                raise ValueError(f"{path}: not a my_torch network file ({error})") from None
+
+    @classmethod
+    def _from_archive(cls, archive: np.lib.npyio.NpzFile) -> "Network":
+        """Build a network from an opened archive.
+
+        Raises:
+            ValueError: If the architecture or an array is not valid.
+            KeyError: If the architecture or an array is missing.
+        """
+        if "architecture" not in archive.files:
+            raise ValueError("No architecture")
+        architecture = json.loads(str(archive["architecture"]))
+        if architecture["format"] != FILE_FORMAT or architecture["version"] != FILE_VERSION:
+            raise ValueError("Unknown format or version")
+        layers = []
+        for layer_index, config in enumerate(architecture["layers"]):
+            settings = dict(config)
+            layer_type = settings.pop("type")
+            if layer_type not in LAYER_TYPES:
+                raise ValueError(f'Unknown layer type "{layer_type}"')
+            layer = LAYER_TYPES[layer_type](**settings)
+            for param_index, (value, _) in enumerate(layer.parameters()):
+                saved = archive[f"layer_{layer_index}_param_{param_index}"]
+                if saved.shape != value.shape:
+                    raise ValueError(f"Wrong shape for layer {layer_index}")
+                value[...] = saved
+            layers.append(layer)
+        return cls(layers, settings=architecture["settings"])
