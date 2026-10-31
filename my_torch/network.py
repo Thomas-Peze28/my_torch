@@ -39,3 +39,21 @@ class Network:
         for layer in self.layers:
             outputs = layer.forward(outputs)
         return outputs
+
+    def backward(self, output_error):
+        """Send the error back through every layer, from the last to the first.
+
+        Must be called after forward(), on the same batch. On the way, every
+        layer with weights stores its gradients.
+
+        Args:
+            output_error: Error on the outputs of the last layer, usually
+                given by a loss.
+
+        Returns:
+            The error on the inputs of the first layer.
+        """
+        error = output_error
+        for layer in reversed(self.layers):
+            error = layer.backward(error)
+        return error
