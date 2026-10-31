@@ -61,3 +61,15 @@ class Network:
         for layer in reversed(self.layers):
             error = layer.backward(error)
         return error
+
+    def predict(self, inputs: np.ndarray) -> np.ndarray:
+        """Give the most likely answer for every example.
+
+        Args:
+            inputs: Array of shape (batch, inputs of the first layer).
+
+        Returns:
+            Array of shape (batch,): for each example, the index of the
+            output with the biggest value.
+        """
+        return self.forward(inputs).argmax(axis=1)

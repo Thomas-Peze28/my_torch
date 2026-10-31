@@ -67,3 +67,40 @@ def test_network_backward_calls_every_layer_in_reverse_order():
     network = Network(make_layers())
     network.forward(inputs)
     np.testing.assert_allclose(network.backward(output_error), by_hand)
+
+
+def make_known_network():
+    linear = Linear(2, 3)
+    linear.weights = np.array([[1.0, 0.0],
+                               [0.0, 1.0],
+                               [-1.0, -1.0]])
+    linear.bias = np.zeros(3)
+    return Network([linear, Softmax()])
+
+
+def test_network_predict_gives_the_index_of_the_biggest_output():
+    network = make_known_network()
+    inputs = np.array([[5.0, 1.0],
+                       [1.0, 5.0],
+                       [-3.0, -3.0]])
+    np.testing.assert_array_equal(network.predict(inputs), [0, 1, 2])
+
+
+def test_network_predict_gives_one_answer_per_example():
+    network = Network(make_layers())
+    assert network.predict(np.ones((7, 3))).shape == (7,)
+
+
+def test_network_predict_matches_argmax_of_forward():
+    network = Network(make_layers())
+    inputs = np.array([[1.0, -2.0, 0.5], [0.0, 3.0, -1.0], [2.0, 2.0, 2.0]])
+    np.testing.assert_array_equal(network.predict(inputs),
+                                  network.forward(inputs).argmax(axis=1))
+
+
+def test_network_predict_is_the_same_with_or_without_softmax():
+    inputs = np.array([[1.0, -2.0, 0.5], [0.0, 3.0, -1.0], [2.0, 2.0, 2.0]])
+    with_softmax = Network(make_layers())
+    without_softmax = Network(make_layers()[:-1])
+    np.testing.assert_array_equal(with_softmax.predict(inputs),
+                                  without_softmax.predict(inputs))
