@@ -2,9 +2,15 @@
 Neural network
 """
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from my_torch.layers import Layer
+from my_torch.losses import Loss
+
+if TYPE_CHECKING:
+    from my_torch.optimizers import Optimizer
 
 
 class Network:
@@ -85,3 +91,57 @@ class Network:
             output with the biggest value.
         """
         return self.forward(inputs).argmax(axis=1)
+
+    def train(
+        self,
+        inputs: np.ndarray,
+        targets: np.ndarray,
+        loss: Loss,
+        optimizer: Optimizer,
+        epochs: int,
+        batch_size: int,
+        seed: int | None = None,
+    ) -> list[float]:
+        """Train the network on the examples for several epochs.
+
+        At every epoch, the examples are shuffled and cut into mini-batches.
+        For every mini-batch: forward pass, loss, backward pass, then the
+        optimizer changes the weights.
+
+        Args:
+            inputs: Examples, shape (examples, inputs of the first layer).
+            targets: Expected outputs, one row per example.
+            loss: Measures how wrong the network is.
+            optimizer: Changes the weights after each mini-batch. It must
+                work on this network.
+            epochs: Number of passes over all the examples.
+            batch_size: Number of examples in each mini-batch. The last
+                mini-batch of an epoch can be smaller.
+            seed: Seed of the shuffling, to train the same way every time.
+
+        Returns:
+            The average loss of each epoch, from the first to the last.
+
+        Raises:
+            ValueError: If epochs or batch_size is not positive, or if
+                inputs and targets do not have the same number of examples.
+        """
+        if epochs <= 0 or batch_size <= 0:
+            raise ValueError("Epochs and batch_size must be positive")
+        if len(inputs) != len(targets):
+            raise ValueError("Inputs and targets must have the same number of examples")
+
+        rng = np.random.default_rng(seed)
+        history = []
+        for _ in range(epochs):
+            order = rng.permutation(len(inputs))
+            total_loss = 0.0
+            for start in range(0, len(inputs), batch_size):
+                batch = order[start:start + batch_size]
+                predictions = self.forward(inputs[batch])
+                batch_loss = loss.forward(predictions, targets[batch])
+                self.backward(loss.backward())
+                optimizer.step()
+                total_loss += batch_loss * len(batch)
+            history.append(total_loss / len(inputs))
+        return history

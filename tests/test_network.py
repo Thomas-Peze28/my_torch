@@ -5,10 +5,11 @@ Network tests
 import numpy as np
 import pytest
 
-from my_torch.activations import ReLU, Softmax
+from my_torch.activations import ReLU, Sigmoid, Softmax
 from my_torch.layers import Linear
 from my_torch.losses import CrossEntropyLoss
 from my_torch.network import Network
+from my_torch.optimizers import SGD
 
 
 def make_layers():
@@ -104,3 +105,43 @@ def test_network_predict_is_the_same_with_or_without_softmax():
     without_softmax = Network(make_layers()[:-1])
     np.testing.assert_array_equal(with_softmax.predict(inputs),
                                   without_softmax.predict(inputs))
+
+
+XOR_INPUTS = np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
+XOR_TARGETS = np.array([[1.0, 0.0], [0.0, 1.0], [0.0, 1.0], [1.0, 0.0]])
+
+
+def train_xor(epochs, batch_size=2, seed=0):
+    network = Network([Linear(2, 4, seed=1), Sigmoid(), Linear(4, 2, seed=2), Softmax()])
+    return network.train(XOR_INPUTS, XOR_TARGETS, CrossEntropyLoss(),
+                         SGD(network, learning_rate=0.5), epochs, batch_size, seed)
+
+
+def test_network_train_returns_one_loss_per_epoch():
+    assert len(train_xor(epochs=7)) == 7
+
+
+def test_network_train_lowers_the_loss():
+    history = train_xor(epochs=300)
+    assert history[-1] < history[0]
+
+
+def test_network_train_with_the_same_seed_gives_the_same_history():
+    assert train_xor(epochs=50, seed=3) == train_xor(epochs=50, seed=3)
+
+
+def test_network_train_accepts_a_batch_bigger_than_the_examples():
+    assert len(train_xor(epochs=5, batch_size=100)) == 5
+
+
+@pytest.mark.parametrize("epochs, batch_size", [(0, 2), (5, 0), (-1, 2)])
+def test_network_train_rejects_non_positive_settings(epochs, batch_size):
+    with pytest.raises(ValueError):
+        train_xor(epochs, batch_size)
+
+
+def test_network_train_rejects_inputs_and_targets_of_different_sizes():
+    network = Network([Linear(2, 2), Softmax()])
+    with pytest.raises(ValueError):
+        network.train(XOR_INPUTS, XOR_TARGETS[:3], CrossEntropyLoss(),
+                      SGD(network, learning_rate=0.5), epochs=1, batch_size=2)
