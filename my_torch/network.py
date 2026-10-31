@@ -62,6 +62,18 @@ class Network:
             error = layer.backward(error)
         return error
 
+    def parameters(self) -> list[tuple[np.ndarray, np.ndarray]]:
+        """List the values every layer learns, each with its gradient.
+
+        Returns:
+            The (value, gradient) pairs of every layer, from the first
+            layer to the last.
+        """
+        pairs = []
+        for layer in self.layers:
+            pairs.extend(layer.parameters())
+        return pairs
+
     def predict(self, inputs: np.ndarray) -> np.ndarray:
         """Give the most likely answer for every example.
 

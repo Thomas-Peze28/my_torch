@@ -40,3 +40,15 @@ class Layer(ABC):
         Returns:
             Error on the inputs of this layer, same shape as the inputs.
         """
+
+    def parameters(self) -> list[tuple[np.ndarray, np.ndarray]]:
+        """List the values the layer learns, each with its gradient.
+
+        Layers without weights, like activations, have nothing to learn:
+        they keep this default and return an empty list.
+
+        Returns:
+            A list of (value, gradient) pairs, where both arrays have the
+            same shape.
+        """
+        return []
