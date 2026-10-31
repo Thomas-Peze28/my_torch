@@ -2,15 +2,23 @@
 Neural network
 """
 
+import json
+import zipfile
 from typing import TYPE_CHECKING
 
 import numpy as np
 
-from my_torch.layers import Layer
+from my_torch.activations import ReLU, Sigmoid, Softmax
+from my_torch.layers import Layer, Linear
 from my_torch.losses import Loss
 
 if TYPE_CHECKING:
     from my_torch.optimizers import Optimizer
+
+FILE_FORMAT = "my_torch"
+FILE_VERSION = 1.0
+
+LAYER_TYPES = {"Linear": Linear, "ReLU": ReLU, "Sigmoid": Sigmoid, "Softmax": Softmax}
 
 
 class Network:
@@ -23,18 +31,23 @@ class Network:
 
     Args:
         layers: The layers of the network, from the first to the last.
+        settings: Free settings saved with the network, e.g. how to train
+            it. The library only stores them; they must be JSON-friendly
+            (numbers, strings, lists, dictionaries).
 
     Attributes:
         layers: The list of layers.
+        settings: The settings given at creation, or an empty dictionary.
 
     Raises:
         ValueError: If the list of layers is empty.
     """
 
-    def __init__(self, layers: list[Layer]) -> None:
+    def __init__(self, layers: list[Layer], settings: dict | None = None) -> None:
         self.layers = list(layers)
         if not self.layers:
             raise ValueError("A network needs at least one layer")
+        self.settings = dict(settings) if settings else {}
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Pass the inputs through every layer, from the first to the last.
@@ -145,3 +158,84 @@ class Network:
                 total_loss += batch_loss * len(batch)
             history.append(total_loss / len(inputs))
         return history
+
+    def save(self, path: str) -> None:
+        """Write the network to one file, to load it again later.
+
+        The file is a compressed NumPy archive holding:
+        - "architecture": JSON text with the file format, its version, the
+          description of every layer and the settings.
+        - "layer_<i>_param_<j>": the j-th learned array of the i-th layer.
+
+        Args:
+            path: Where to write the file, e.g. "my_torch_network.nn".
+        """
+        architecture = {
+            "format": FILE_FORMAT,
+            "version": FILE_VERSION,
+            "layers": [layer.config() for layer in self.layers],
+            "settings": self.settings,
+        }
+        arrays = {"architecture": np.array(json.dumps(architecture))}
+        for layer_index, layer in enumerate(self.layers):
+            for param_index, (value, _) in enumerate(layer.parameters()):
+                arrays[f"layer_{layer_index}_param_{param_index}"] = value
+        with open(path, "wb") as file:
+            np.savez_compressed(file, **arrays)
+
+    @classmethod
+    def load(cls, path: str) -> "Network":
+        """Build a network from a file written by save().
+
+        Args:
+            path: The file to read.
+
+        Returns:
+            A new network with the same layers, learned arrays and settings
+            as the saved one.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the file is not a valid my_torch network file.
+        """
+        try:
+            archive = np.load(path, allow_pickle=False)
+        except FileNotFoundError:
+            raise
+        except (OSError, ValueError, zipfile.BadZipFile):
+            raise ValueError(f"{path}: not a my_torch network file") from None
+        if not isinstance(archive, np.lib.npyio.NpzFile):
+            raise ValueError(f"{path}: not a my_torch network file")
+        with archive:
+            try:
+                return cls._from_archive(archive)
+            except (KeyError, TypeError, AttributeError, ValueError) as error:
+                raise ValueError(f"{path}: not a my_torch network file ({error})") from None
+
+    @classmethod
+    def _from_archive(cls, archive: np.lib.npyio.NpzFile) -> "Network":
+        """Build a network from an opened archive.
+
+        Raises:
+            ValueError: If the architecture or an array is not valid.
+            KeyError: If the architecture or an array is missing.
+        """
+        if "architecture" not in archive.files:
+            raise ValueError("No architecture")
+        architecture = json.loads(str(archive["architecture"]))
+        if architecture["format"] != FILE_FORMAT or architecture["version"] != FILE_VERSION:
+            raise ValueError("Unknown format or version")
+        layers = []
+        for layer_index, config in enumerate(architecture["layers"]):
+            settings = dict(config)
+            layer_type = settings.pop("type")
+            if layer_type not in LAYER_TYPES:
+                raise ValueError(f'Unknown layer type "{layer_type}"')
+            layer = LAYER_TYPES[layer_type](**settings)
+            for param_index, (value, _) in enumerate(layer.parameters()):
+                saved = archive[f"layer_{layer_index}_param_{param_index}"]
+                if saved.shape != value.shape:
+                    raise ValueError(f"Wrong shape for layer {layer_index}")
+                value[...] = saved
+            layers.append(layer)
+        return cls(layers, settings=architecture["settings"])
