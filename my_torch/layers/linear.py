@@ -66,3 +66,11 @@ class Linear(Layer):
         self.weights_gradient = output_error.T @ self._last_inputs
         self.bias_gradient = output_error.sum(axis=0)
         return output_error @ self.weights
+
+    def parameters(self) -> list[tuple[np.ndarray, np.ndarray]]:
+        """List the weights and the bias, each with its gradient.
+
+        Returns:
+            [(weights, weights_gradient), (bias, bias_gradient)].
+        """
+        return [(self.weights, self.weights_gradient), (self.bias, self.bias_gradient)]
