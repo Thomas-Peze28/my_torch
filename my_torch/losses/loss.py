@@ -4,6 +4,8 @@ Loss base class
 
 from abc import ABC, abstractmethod
 
+import numpy as np
+
 
 class Loss(ABC):
     """Base class of every loss: a measure of how wrong the network is.
@@ -15,7 +17,7 @@ class Loss(ABC):
     """
 
     @abstractmethod
-    def forward(self, predictions, targets):
+    def forward(self, predictions: np.ndarray, targets: np.ndarray) -> float:
         """Measure how wrong the predictions are.
 
         Args:
@@ -27,7 +29,7 @@ class Loss(ABC):
         """
 
     @abstractmethod
-    def backward(self):
+    def backward(self) -> np.ndarray:
         """Return the error on each prediction.
 
         Must be called after forward(), on the same batch.

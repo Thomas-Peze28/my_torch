@@ -15,10 +15,10 @@ class Softmax(Layer):
     several answers.
     """
 
-    def __init__(self):
-        self._last_probabilities = None
+    def __init__(self) -> None:
+        self._last_probabilities: np.ndarray | None = None
 
-    def forward(self, inputs):
+    def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Apply the softmax to every row (one row = one example).
 
         The biggest score of each row is subtracted first: the result is
@@ -36,7 +36,7 @@ class Softmax(Layer):
         self._last_probabilities = exps / row_total
         return self._last_probabilities
 
-    def backward(self, output_error):
+    def backward(self, output_error: np.ndarray) -> np.ndarray:
         """Send the error back through the softmax.
 
         The probabilities of a row always add up to 1: raising one lowers

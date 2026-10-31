@@ -16,10 +16,10 @@ class Sigmoid(Layer):
     very positive inputs give almost 1, and 0 gives 0.5.
     """
 
-    def __init__(self):
-        self._last_outputs = None
+    def __init__(self) -> None:
+        self._last_outputs: np.ndarray | None = None
 
-    def forward(self, inputs):
+    def forward(self, inputs: np.ndarray) -> np.ndarray:
         """Apply the sigmoid to every value.
 
         Args:
@@ -32,7 +32,7 @@ class Sigmoid(Layer):
         self._last_outputs = 1.0 / (1.0 + np.exp(-clipped))
         return self._last_outputs
 
-    def backward(self, output_error):
+    def backward(self, output_error: np.ndarray) -> np.ndarray:
         """Send the error back through the sigmoid.
 
         The error is multiplied by how much the sigmoid "hesitates":
