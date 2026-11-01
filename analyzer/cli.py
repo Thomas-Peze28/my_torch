@@ -2,6 +2,7 @@ import os
 import sys
 
 from analyzer.predict import run_predict
+from analyzer.train import run_train
 
 EXIT_OK = 0
 EXIT_ERROR = 84
@@ -103,8 +104,7 @@ def main(args):
         if options.mode == "predict":
             run_predict(options.loadfile, options.chessfile)
         else:
-            print("my_torch_analyzer: --train is not implemented yet", file=sys.stderr)
-            return EXIT_ERROR
+            run_train(options.loadfile, options.chessfile)
     except (ValueError, OSError) as error:
         print(f"my_torch_analyzer: {error}", file=sys.stderr)
         return EXIT_ERROR
