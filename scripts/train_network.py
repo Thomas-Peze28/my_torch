@@ -26,7 +26,7 @@ from my_torch import Network
 EXIT_OK = 0
 EXIT_ERROR = 84
 
-CONFIG_FILE = os.path.join("configs", "chess_network.conf")
+CONFIG_FILE = os.path.join("configs", "basic_network.conf")
 DATASET_FOLDER = "dataset"
 OUTPUT_FILE = "my_torch_network.nn"
 
