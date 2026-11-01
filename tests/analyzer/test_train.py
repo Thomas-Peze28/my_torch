@@ -120,3 +120,42 @@ def test_train_errors_return_84_and_keep_the_network(tmp_path, capsys, case):
     assert output.err.startswith("my_torch_analyzer: ")
     assert output.out == ""
     assert (tmp_path / "network.nn").read_bytes() == before
+
+
+def test_train_without_save_overwrites_the_loaded_network(files):
+    network_path, boards_path = files
+    before = Network.load(network_path).layers[0].weights.copy()
+    main(["--train", network_path, boards_path])
+    assert not np.array_equal(Network.load(network_path).layers[0].weights, before)
+
+
+def test_train_with_save_writes_the_new_file_and_keeps_the_loaded_one(files, tmp_path):
+    network_path, boards_path = files
+    saved_path = str(tmp_path / "trained.nn")
+    before = (tmp_path / "network.nn").read_bytes()
+
+    assert main(["--train", "--save", saved_path, network_path, boards_path]) == 0
+
+    assert (tmp_path / "network.nn").read_bytes() == before
+    trained = Network.load(saved_path)
+    answers = [LABELS[index] for index in trained.predict(encode_boards(list(BOARDS)))]
+    assert answers == list(BOARDS.values())
+
+
+def test_save_can_come_after_the_files(files, tmp_path):
+    network_path, boards_path = files
+    saved_path = str(tmp_path / "trained.nn")
+    assert main(["--train", network_path, boards_path, "--save", saved_path]) == 0
+    Network.load(saved_path)
+
+
+@pytest.mark.parametrize("target", ["missing_folder/trained.nn", "folder"])
+def test_save_to_an_impossible_place_returns_84_before_training(files, tmp_path, capsys, target):
+    network_path, boards_path = files
+    (tmp_path / "folder").mkdir()
+
+    assert main(["--train", "--save", str(tmp_path / target), network_path, boards_path]) == 84
+
+    output = capsys.readouterr()
+    assert "cannot save the network" in output.err
+    assert output.out == ""

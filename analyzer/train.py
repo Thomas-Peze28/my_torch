@@ -2,6 +2,8 @@
 Train mode
 """
 
+import os
+
 import numpy as np
 
 from analyzer.chess_network import check_chess_network
@@ -68,28 +70,49 @@ def encode_answers(answers: list[str]) -> np.ndarray:
     return np.eye(len(LABELS))[indexes]
 
 
-def run_train(loadfile: str, chessfile: str) -> None:
+def check_writable(path: str) -> None:
+    """Make sure a network can be written to a path, before training.
+
+    Raises:
+        ValueError: If the folder does not exist, or the file or the folder
+            cannot be written.
+    """
+    folder = os.path.dirname(os.path.abspath(path))
+    if not os.path.isdir(folder):
+        raise ValueError(f"cannot save the network to {path}: the folder does not exist")
+    if os.path.isdir(path):
+        raise ValueError(f"cannot save the network to {path}: it is a folder")
+    target = path if os.path.exists(path) else folder
+    if not os.access(target, os.W_OK):
+        raise ValueError(f"cannot save the network to {path}: permission denied")
+
+
+def run_train(loadfile: str, chessfile: str, savefile: str | None = None) -> None:
     """Train a network on the chessboards of a file, then save it.
 
     The loss, optimizer, learning rate, number of epochs, batch size and
-    seed come from the settings of the network. The network is saved over
-    LOADFILE.
+    seed come from the settings of the network. Everything, including where
+    to save, is checked before training, so a long training is never lost.
 
     Args:
         loadfile: The network file.
         chessfile: The chessboard file; every line needs its expected answer.
+        savefile: Where to save the trained network. None saves it over
+            loadfile.
 
     Raises:
         FileNotFoundError: If a file does not exist.
         ValueError: If the network, its settings or the chessboard file is
-            not valid.
+            not valid, or the network cannot be saved.
     """
+    target = savefile if savefile is not None else loadfile
     network = Network.load(loadfile)
     check_chess_network(network)
     settings = read_settings(network.settings)
     fens, answers = read_chessfile(chessfile, answers_needed=True)
     if not fens:
         raise ValueError(f"{chessfile}: no chessboard to train on")
+    check_writable(target)
 
     inputs = encode_boards(fens)
     targets = encode_answers(answers)
@@ -97,6 +120,6 @@ def run_train(loadfile: str, chessfile: str) -> None:
     optimizer = OPTIMIZERS[settings["optimizer"]](network, settings["learning_rate"])
     history = network.train(inputs, targets, loss, optimizer,
                             settings["epochs"], settings["batch_size"], settings["seed"])
-    network.save(loadfile)
+    network.save(target)
     print(f"Trained on {len(fens)} chessboards for {settings['epochs']} epochs: "
           f"loss {history[0]:.4f} -> {history[-1]:.4f}")

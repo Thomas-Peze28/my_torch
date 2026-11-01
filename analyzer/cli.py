@@ -104,7 +104,7 @@ def main(args):
         if options.mode == "predict":
             run_predict(options.loadfile, options.chessfile)
         else:
-            run_train(options.loadfile, options.chessfile)
+            run_train(options.loadfile, options.chessfile, options.savefile)
     except (ValueError, OSError) as error:
         print(f"my_torch_analyzer: {error}", file=sys.stderr)
         return EXIT_ERROR
