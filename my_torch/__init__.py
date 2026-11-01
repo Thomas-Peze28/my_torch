@@ -2,7 +2,7 @@
 my_torch
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from my_torch.activations import ReLU, Sigmoid, Softmax
 from my_torch.layers import Layer, Linear

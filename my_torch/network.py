@@ -202,7 +202,7 @@ class Network:
             archive = np.load(path, allow_pickle=False)
         except FileNotFoundError:
             raise
-        except (OSError, ValueError, zipfile.BadZipFile):
+        except (OSError, ValueError, EOFError, zipfile.BadZipFile):
             raise ValueError(f"{path}: not a my_torch network file") from None
         if not isinstance(archive, np.lib.npyio.NpzFile):
             raise ValueError(f"{path}: not a my_torch network file")
@@ -225,17 +225,72 @@ class Network:
         architecture = json.loads(str(archive["architecture"]))
         if architecture["format"] != FILE_FORMAT or architecture["version"] != FILE_VERSION:
             raise ValueError("Unknown format or version")
-        layers = []
-        for layer_index, config in enumerate(architecture["layers"]):
-            settings = dict(config)
-            layer_type = settings.pop("type")
-            if layer_type not in LAYER_TYPES:
-                raise ValueError(f'Unknown layer type "{layer_type}"')
-            layer = LAYER_TYPES[layer_type](**settings)
+        network = cls.from_config(architecture)
+        for layer_index, layer in enumerate(network.layers):
             for param_index, (value, _) in enumerate(layer.parameters()):
                 saved = archive[f"layer_{layer_index}_param_{param_index}"]
                 if saved.shape != value.shape:
                     raise ValueError(f"Wrong shape for layer {layer_index}")
                 value[...] = saved
+        return network
+
+    @classmethod
+    def from_config(cls, description: dict, seed: int | None = None) -> "Network":
+        """Build a new network, with random weights, from its description.
+
+        The description is the one written in configuration files and in
+        saved networks:
+        ```
+            {
+                "layers": [{"type": "Linear", "input_size": 769, "output_size": 256},
+                           {"type": "ReLU"}, ...],
+                "settings": {"learning_rate": 0.1, ...}
+            }
+        "settings" #is optional. Other keys are ignored.
+        ```
+
+        Args:
+            description: The layers, in order, and the optional settings.
+            seed: Seed of the random starting weights, to build the same
+                network every time. None gives different weights each time.
+
+        Returns:
+            A new, untrained network.
+
+        Raises:
+            ValueError: If the description is not valid: no layers, unknown
+                layer type, wrong layer settings, or sizes that do not
+                follow each other.
+        """
+        if not isinstance(description, dict):
+            raise ValueError("A network description must be a JSON object")
+        configs = description.get("layers")
+        if not isinstance(configs, list) or not configs:
+            raise ValueError('A network description needs a non-empty "layers" list')
+        settings = description.get("settings", {})
+        if not isinstance(settings, dict):
+            raise ValueError('"settings" must be a JSON object')
+
+        rng = np.random.default_rng(seed)
+        layers = []
+        size = None
+        for layer_index, config in enumerate(configs):
+            if not isinstance(config, dict) or "type" not in config:
+                raise ValueError(f'Layer {layer_index} needs a "type"')
+            arguments = dict(config)
+            layer_type = arguments.pop("type")
+            if layer_type not in LAYER_TYPES:
+                raise ValueError(f'Unknown layer type "{layer_type}"')
+            if layer_type == "Linear":
+                arguments["seed"] = int(rng.integers(2**32))
+            try:
+                layer = LAYER_TYPES[layer_type](**arguments)
+            except TypeError:
+                raise ValueError(f"Wrong settings for layer {layer_index}: {config}") from None
+            if layer_type == "Linear":
+                if size is not None and config["input_size"] != size:
+                    raise ValueError(f"Layer {layer_index} gets {config['input_size']} inputs, "
+                                     f"but the layer before gives {size}")
+                size = config["output_size"]
             layers.append(layer)
-        return cls(layers, settings=architecture["settings"])
+        return cls(layers, settings=settings)
