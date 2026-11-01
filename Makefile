@@ -27,4 +27,7 @@ tests_run:
 dataset:
 	$(PYTHON) -m scripts.prepare_dataset
 
-.PHONY:	all $(NAME) $(GENERATOR) clean fclean re tests_run dataset
+train:
+	$(PYTHON) -m scripts.train_network
+
+.PHONY:	all $(NAME) $(GENERATOR) clean fclean re tests_run dataset train
