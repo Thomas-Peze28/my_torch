@@ -108,4 +108,7 @@ def main(args):
     except (ValueError, OSError) as error:
         print(f"my_torch_analyzer: {error}", file=sys.stderr)
         return EXIT_ERROR
+    except Exception as error:
+        print(f"my_torch_analyzer: unexpected error: {error!r}", file=sys.stderr)
+        return EXIT_ERROR
     return EXIT_OK
