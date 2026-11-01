@@ -26,9 +26,15 @@ class Linear(Layer):
             same shape as weights. Filled by backward().
         bias_gradient: How to change each bias to reduce the error, same
             shape as bias. Filled by backward().
+
+    Raises:
+        ValueError: If a size is not a positive whole number.
     """
 
     def __init__(self, input_size: int, output_size: int, seed: int | None = None) -> None:
+        for size in (input_size, output_size):
+            if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
+                raise ValueError(f"Layer sizes must be positive whole numbers, not {size!r}")
         rng = np.random.default_rng(seed)
         self.weights = rng.uniform(-1.0, 1.0, size=(output_size, input_size))
         self.bias = np.zeros(output_size)

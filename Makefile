@@ -1,10 +1,15 @@
 
 NAME	=	my_torch_analyzer
 
-all:	$(NAME)
+GENERATOR	=	my_torch_generator
+
+all:	$(NAME) $(GENERATOR)
 
 $(NAME):
 	chmod +x $(NAME)
+
+$(GENERATOR):
+	chmod +x $(GENERATOR)
 
 clean:
 	find . -name "__pycache__" -type d -prune -not -path "./.venv/*" -exec rm -rf {} +
@@ -17,4 +22,4 @@ re:	fclean all
 tests_run:
 	python3 -m pytest tests
 
-.PHONY:	all $(NAME) clean fclean re tests_run
+.PHONY:	all $(NAME) $(GENERATOR) clean fclean re tests_run
