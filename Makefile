@@ -3,6 +3,8 @@ NAME	=	my_torch_analyzer
 
 GENERATOR	=	my_torch_generator
 
+PYTHON	?=	python3
+
 all:	$(NAME) $(GENERATOR)
 
 $(NAME):
@@ -20,6 +22,9 @@ fclean:	clean
 re:	fclean all
 
 tests_run:
-	python3 -m pytest tests
+	$(PYTHON) -m pytest tests
 
-.PHONY:	all $(NAME) $(GENERATOR) clean fclean re tests_run
+dataset:
+	$(PYTHON) -m scripts.prepare_dataset
+
+.PHONY:	all $(NAME) $(GENERATOR) clean fclean re tests_run dataset
