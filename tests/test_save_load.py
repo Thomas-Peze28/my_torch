@@ -186,3 +186,19 @@ def test_load_weights_of_the_wrong_shape_raises_value_error(tmp_path):
                   {"layer_0_param_0": np.zeros((5, 5)), "layer_0_param_1": np.zeros(3)})
     with pytest.raises(ValueError, match="Wrong shape"):
         Network.load(str(path))
+
+
+def test_load_an_empty_file_raises_value_error(tmp_path):
+    path = tmp_path / "empty.nn"
+    path.write_bytes(b"")
+    with pytest.raises(ValueError, match="not a my_torch network file"):
+        Network.load(str(path))
+
+
+def test_load_a_cut_file_raises_value_error(tmp_path):
+    full = tmp_path / "full.nn"
+    make_network().save(str(full))
+    cut = tmp_path / "cut.nn"
+    cut.write_bytes(full.read_bytes()[:500])
+    with pytest.raises(ValueError, match="not a my_torch network file"):
+        Network.load(str(cut))

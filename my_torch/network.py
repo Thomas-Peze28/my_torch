@@ -202,7 +202,7 @@ class Network:
             archive = np.load(path, allow_pickle=False)
         except FileNotFoundError:
             raise
-        except (OSError, ValueError, zipfile.BadZipFile):
+        except (OSError, ValueError, EOFError, zipfile.BadZipFile):
             raise ValueError(f"{path}: not a my_torch network file") from None
         if not isinstance(archive, np.lib.npyio.NpzFile):
             raise ValueError(f"{path}: not a my_torch network file")
