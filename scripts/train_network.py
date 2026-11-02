@@ -9,10 +9,12 @@ seed of the configuration fixes the starting weights and the order of the
 mini-batches, so the same command always gives the same network.
 
 Run it from the root of the repository, after "make dataset":
-    python3 -m scripts.train_network [--config FILE] [--dataset FOLDER] [--output FILE] [--test]
+    python3 -m scripts.train_network [--config FILE] [--dataset FOLDER] [--output FILE]
+                                     [--history FILE] [--test]
 """
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -52,6 +54,19 @@ def accuracy(network: Network, path: str) -> float:
     return right / len(fens)
 
 
+def write_history(path: str, config: str, history: dict, validation: float) -> None:
+    """Write the history of a training in a JSON file, to draw graphs later.
+
+    Args:
+        path: The JSON file to write.
+        config: The configuration file of the network.
+        history: The history returned by the training.
+        validation: Accuracy of the trained network on validation.txt.
+    """
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump({"config": config, "history": history, "validation_accuracy": validation}, file, indent=2)
+
+
 def parse_args(args: list[str]) -> argparse.Namespace:
     """Read the options of the script."""
     parser = argparse.ArgumentParser(prog="python3 -m scripts.train_network",
@@ -60,6 +75,7 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     parser.add_argument("--dataset", default=DATASET_FOLDER,
                         help="folder with train.txt, validation.txt and test.txt")
     parser.add_argument("--output", default=OUTPUT_FILE, help="where to save the trained network")
+    parser.add_argument("--history", help="JSON file where to write the loss and accuracy of every epoch")
     parser.add_argument("--test", action="store_true",
                         help="also give the final mark on test.txt (only for the chosen network)")
     return parser.parse_args(args)
@@ -74,12 +90,15 @@ def main(args: list[str]) -> int:
         print(f"Created {options.output} from {options.config}")
 
         start = time.time()
-        run_train(options.output, os.path.join(options.dataset, "train.txt"))
+        history = run_train(options.output, os.path.join(options.dataset, "train.txt"))
         print(f"Training took {(time.time() - start) / 60:.1f} minutes")
 
         trained = Network.load(options.output)
         validation = accuracy(trained, os.path.join(options.dataset, "validation.txt"))
         print(f"Validation accuracy: {validation:.2%}")
+        if options.history:
+            write_history(options.history, options.config, history, validation)
+            print(f"History written to {options.history}")
         if options.test:
             print(f"Test accuracy: {accuracy(trained, os.path.join(options.dataset, 'test.txt')):.2%}")
     except (UsageError, ValueError, OSError) as error:

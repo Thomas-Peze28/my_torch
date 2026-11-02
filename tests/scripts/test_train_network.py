@@ -89,3 +89,18 @@ def test_main_returns_84_with_a_message(folder, capsys, broken):
         (folder / "train.txt").unlink()
     assert run(folder) == 84
     assert capsys.readouterr().err.startswith("train_network: ")
+
+
+def test_main_writes_the_history_when_asked(folder):
+    history_path = folder / "history.json"
+    assert run(folder, "--history", str(history_path)) == 0
+    written = json.loads(history_path.read_text())
+    assert written["config"] == str(folder / "small.conf")
+    assert written["validation_accuracy"] == 1
+    assert len(written["history"]["loss"]) == 300
+    assert set(written["history"]) == {"loss", "accuracy", "val_loss", "val_accuracy", "best_epoch"}
+
+
+def test_main_writes_no_history_by_default(folder):
+    run(folder)
+    assert not list(folder.glob("*.json"))
