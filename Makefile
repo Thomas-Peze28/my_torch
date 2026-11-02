@@ -29,9 +29,9 @@ dataset:
 
 train:
 	mkdir -p benchmarks
-	$(PYTHON) -m scripts.train_network --history benchmarks/my_torch_network.json
-	$(PYTHON) -m scripts.plot_history benchmarks/my_torch_network.json --output benchmarks/my_torch_network.png --title "my_torch_network.nn (chess_network.conf)"
-	$(PYTHON) -m scripts.evaluate_network my_torch_network.nn --output benchmarks/my_torch_network_confusion.png
+	$(PYTHON) -m scripts.train_network --history benchmarks/pushed_network.json
+	$(PYTHON) -m scripts.plot_history benchmarks/pushed_network.json --output benchmarks/pushed_network.png --title "my_torch_network.nn (chess_network.conf)"
+	$(PYTHON) -m scripts.evaluate_network my_torch_network.nn --output benchmarks/pushed_network_confusion.png
 
 benchmark:
 	mkdir -p runs benchmarks
