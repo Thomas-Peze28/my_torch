@@ -54,7 +54,7 @@ On comparison graphs, **one colour is one network**. The networks are the same e
 
 ## 3. The pushed network
 
-![Learning curves of my_torch_network.nn](../benchmarks/my_torch_network.png)
+![Learning curves of my_torch_network.nn](../benchmarks/pushed_network.png)
 
 - **Right graph**: the dashed line climbs to 95%, but the solid line stops around 83% after epoch 4. The gap between them is the network **learning by heart**.
 - **Left graph**: the solid loss goes back up after epoch 4. The network gets too sure of itself on chessboards it does not know.
@@ -107,7 +107,7 @@ With He and Adam, the bigger network gains 2 points. With the first settings, it
 
 ## 7. Mistakes
 
-![Confusion matrix of my_torch_network.nn](../benchmarks/my_torch_network_confusion.png)
+![Confusion matrix of my_torch_network.nn](../benchmarks/pushed_network_confusion.png)
 
 How to read it:
 

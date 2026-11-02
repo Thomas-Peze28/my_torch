@@ -162,7 +162,7 @@ make benchmark   # about 10 minutes
 | Rule | What it does | Writes |
 |---|---|---|
 | `make dataset` | removes duplicates, shuffles, cuts into 3 files | `dataset/train.txt` (80%), `validation.txt` (10%), `test.txt` (10%) |
-| `make train` | trains `configs/chess_network.conf`, draws its graphs | `my_torch_network.nn`, `benchmarks/my_torch_network*` |
+| `make train` | trains `configs/chess_network.conf`, draws its graphs | `my_torch_network.nn`, `benchmarks/pushed_network*` |
 | `make benchmark` | trains the networks of `configs/benchmarks/`, draws the comparisons | `benchmarks/init.png`, `benchmarks/optimizer.png` |
 
 The seeds are fixed: the same commands give the same files, byte for byte.
