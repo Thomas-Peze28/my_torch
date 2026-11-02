@@ -114,7 +114,7 @@ XOR_TARGETS = np.array([[1.0, 0.0], [0.0, 1.0], [0.0, 1.0], [1.0, 0.0]])
 def train_xor(epochs, batch_size=2, seed=0):
     network = Network([Linear(2, 4, seed=1), Sigmoid(), Linear(4, 2, seed=2), Softmax()])
     return network.train(XOR_INPUTS, XOR_TARGETS, CrossEntropyLoss(),
-                         SGD(network, learning_rate=0.5), epochs, batch_size, seed)
+                         SGD(network, learning_rate=0.5), epochs, batch_size, seed)["loss"]
 
 
 def test_network_train_returns_one_loss_per_epoch():

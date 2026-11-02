@@ -5,7 +5,7 @@ Linear layer
 import numpy as np
 
 from my_torch.layers.initializers import INITIALIZERS
-from my_torch.layers.layer import Layer
+from my_torch.layers.layer import Layer, Parameter
 
 
 class Linear(Layer):
@@ -81,7 +81,7 @@ class Linear(Layer):
         self.bias_gradient = output_error.sum(axis=0)
         return output_error @ self.weights
 
-    def parameters(self) -> list[tuple[np.ndarray, np.ndarray]]:
+    def parameters(self) -> list[Parameter]:
         """List the weights and the bias, each with its gradient.
 
         Returns:

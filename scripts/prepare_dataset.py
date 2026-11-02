@@ -30,6 +30,9 @@ SEED = 42
 VALIDATION_SHARE = 0.1
 TEST_SHARE = 0.1
 
+Board = tuple[str, str]
+"""A chessboard and its expected answer: (FEN, answer)."""
+
 
 def find_files(folder: str) -> list[str]:
     """Find the chessboard files of the dataset, e.g. "dataset/check/10_pieces.txt".
@@ -49,7 +52,7 @@ def find_files(folder: str) -> list[str]:
     return paths
 
 
-def read_dataset(paths: list[str]) -> list[tuple[str, str]]:
+def read_dataset(paths: list[str]) -> list[Board]:
     """Read every chessboard of the files, with its expected answer.
 
     Returns:
@@ -75,7 +78,7 @@ def position_key(fen: str) -> str:
     return f"{pieces} {side}"
 
 
-def remove_duplicates(boards: list[tuple[str, str]]) -> list[tuple[str, str]]:
+def remove_duplicates(boards: list[Board]) -> list[Board]:
     """Keep only the first chessboard of each position.
 
     Returns:
@@ -91,15 +94,15 @@ def remove_duplicates(boards: list[tuple[str, str]]) -> list[tuple[str, str]]:
     return unique
 
 
-def shuffle_boards(boards: list[tuple[str, str]], seed: int) -> list[tuple[str, str]]:
+def shuffle_boards(boards: list[Board], seed: int) -> list[Board]:
     """Return the boards in a random order, always the same for one seed."""
     shuffled = list(boards)
     random.Random(seed).shuffle(shuffled)
     return shuffled
 
 
-def split_boards(boards: list[tuple[str, str]], validation_share: float = VALIDATION_SHARE,
-                 test_share: float = TEST_SHARE) -> dict[str, list[tuple[str, str]]]:
+def split_boards(boards: list[Board], validation_share: float = VALIDATION_SHARE,
+                 test_share: float = TEST_SHARE) -> dict[str, list[Board]]:
     """Cut the boards into a training, a validation and a test part.
 
     The boards must already be shuffled and without duplicates: the parts
@@ -123,14 +126,14 @@ def split_boards(boards: list[tuple[str, str]], validation_share: float = VALIDA
     }
 
 
-def write_boards(boards: list[tuple[str, str]], path: str) -> None:
+def write_boards(boards: list[Board], path: str) -> None:
     """Write one "FEN answer" line per chessboard, the format of --train."""
     with open(path, "w", encoding="utf-8") as file:
         for fen, answer in boards:
             file.write(f"{fen} {answer}\n")
 
 
-def print_summary(boards: list[tuple[str, str]], parts: dict[str, list[tuple[str, str]]],
+def print_summary(boards: list[Board], parts: dict[str, list[Board]],
                   folder: str) -> None:
     """Print the size of each file and the share of each answer in it."""
     columns = {"all": boards} | parts

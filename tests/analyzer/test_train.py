@@ -8,7 +8,7 @@ import pytest
 from analyzer.cli import main
 from analyzer.encoding import encode_boards
 from analyzer.labels import LABELS
-from analyzer.train import DEFAULT_SETTINGS, encode_answers, read_settings
+from analyzer.train import DEFAULT_SETTINGS, encode_answers, read_settings, split_validation
 from my_torch import Linear, Network, ReLU, Softmax
 
 BOARDS = {
@@ -52,6 +52,11 @@ def test_read_settings_fills_the_missing_settings():
     ({"epochs": 2.5}, "epochs"),
     ({"batch_size": True}, "batch_size"),
     ({"seed": "abc"}, "seed"),
+    ({"validation_split": 1}, "validation_split"),
+    ({"validation_split": -0.1}, "validation_split"),
+    ({"validation_split": "10%"}, "validation_split"),
+    ({"patience": 0}, "patience"),
+    ({"patience": 1.5}, "patience"),
 ])
 def test_read_settings_rejects_invalid_settings(settings, message):
     with pytest.raises(ValueError, match=message):
@@ -167,3 +172,33 @@ def test_train_can_use_adam(tmp_path):
     trained = Network.load(network_path)
     answers = [LABELS[index] for index in trained.predict(encode_boards(list(BOARDS)))]
     assert answers == list(BOARDS.values())
+
+
+def test_split_validation_puts_a_random_part_aside():
+    inputs = np.arange(20).reshape(20, 1)
+    targets = np.eye(5)[np.arange(20) % 5]
+    (train_inputs, train_targets), (val_inputs, val_targets) = split_validation(inputs, targets, 0.25, seed=1)
+    assert len(train_inputs) == 15 and len(val_inputs) == 5
+    assert sorted(train_inputs.ravel().tolist() + val_inputs.ravel().tolist()) == list(range(20))
+    assert val_inputs.ravel().tolist() != [0, 1, 2, 3, 4]
+    np.testing.assert_array_equal(val_targets, np.eye(5)[val_inputs.ravel() % 5])
+
+
+def test_split_validation_gives_none_when_nothing_is_put_aside():
+    inputs, targets = np.zeros((5, 1)), np.eye(5)
+    assert split_validation(inputs, targets, 0.1, seed=0) == ((inputs, targets), None)
+    assert split_validation(inputs, targets, 0, seed=0)[1] is None
+
+
+def test_train_checks_the_chessboards_put_aside_and_keeps_the_best_epoch(tmp_path, capsys):
+    network_path = save_network(tmp_path / "network.nn", settings=SETTINGS | {
+        "optimizer": "Adam", "learning_rate": 0.01, "epochs": 50, "validation_split": 0.2, "patience": 3})
+    boards = {f"{fen.rsplit(' ', 1)[0]} {number + 1}": answer
+              for number in range(4) for fen, answer in BOARDS.items()}
+
+    assert main(["--train", network_path, write_boards(tmp_path / "boards.txt", boards)]) == 0
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0].startswith("Epoch 1/50: loss ") and "validation loss" in lines[0]
+    assert any(line.startswith("Trained on 16 chessboards for ") for line in lines)
+    assert lines[-1].startswith("Kept epoch ") and "checked on 4 chessboards put aside" in lines[-1]
