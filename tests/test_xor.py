@@ -14,7 +14,7 @@ from my_torch.activations import ReLU, Sigmoid, Softmax
 from my_torch.layers import Linear
 from my_torch.losses import CrossEntropyLoss, MSELoss
 from my_torch.network import Network
-from my_torch.optimizers import SGD
+from my_torch.optimizers import SGD, Adam
 
 INPUTS = np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
 XOR_ANSWERS = np.array([0, 1, 1, 0])
@@ -144,3 +144,12 @@ def test_xor_stays_learned_when_training_continues():
     second_history = train(network, loss, 0.5, 2000)
     np.testing.assert_array_equal(network.predict(INPUTS), XOR_ANSWERS)
     assert second_history[-1] <= first_history[-1]
+
+
+@pytest.mark.parametrize("seed", range(5))
+def test_xor_is_learned_with_adam(seed):
+    network = relu_network(seed)
+    history = network.train(INPUTS, one_hot(XOR_ANSWERS), CrossEntropyLoss(), Adam(network, learning_rate=0.01),
+                            epochs=1000, batch_size=4, seed=seed)
+    assert history[-1] < 0.05
+    assert (right_answer_probabilities(network) > 0.9).all()

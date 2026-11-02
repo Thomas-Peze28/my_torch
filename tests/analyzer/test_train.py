@@ -45,7 +45,7 @@ def test_read_settings_fills_the_missing_settings():
 
 @pytest.mark.parametrize("settings, message", [
     ({"loss": "Keras"}, "unknown loss"),
-    ({"optimizer": "Adam"}, "unknown optimizer"),
+    ({"optimizer": "RMSprop"}, "unknown optimizer"),
     ({"learning_rate": 0}, "learning_rate"),
     ({"learning_rate": "fast"}, "learning_rate"),
     ({"epochs": -3}, "epochs"),
@@ -159,3 +159,11 @@ def test_save_to_an_impossible_place_returns_84_before_training(files, tmp_path,
     output = capsys.readouterr()
     assert "cannot save the network" in output.err
     assert output.out == ""
+
+
+def test_train_can_use_adam(tmp_path):
+    network_path = save_network(tmp_path / "network.nn", settings=SETTINGS | {"optimizer": "Adam", "learning_rate": 0.01})
+    assert main(["--train", network_path, write_boards(tmp_path / "boards.txt")]) == 0
+    trained = Network.load(network_path)
+    answers = [LABELS[index] for index in trained.predict(encode_boards(list(BOARDS)))]
+    assert answers == list(BOARDS.values())
