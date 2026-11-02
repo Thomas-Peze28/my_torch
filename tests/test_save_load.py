@@ -31,8 +31,8 @@ def test_activations_describe_themselves_with_their_type():
     assert Softmax().config() == {"type": "Softmax"}
 
 
-def test_linear_describes_itself_with_its_sizes():
-    assert Linear(769, 256).config() == {"type": "Linear", "input_size": 769, "output_size": 256}
+def test_linear_describes_itself_with_its_sizes_and_init():
+    assert Linear(769, 256).config() == {"type": "Linear", "input_size": 769, "output_size": 256, "init": "uniform"}
 
 
 def test_network_keeps_its_settings():
@@ -57,9 +57,9 @@ def test_save_writes_the_architecture_and_the_settings(tmp_path):
         "format": "my_torch",
         "version": 1,
         "layers": [
-            {"type": "Linear", "input_size": 3, "output_size": 4},
+            {"type": "Linear", "input_size": 3, "output_size": 4, "init": "uniform"},
             {"type": "ReLU"},
-            {"type": "Linear", "input_size": 4, "output_size": 2},
+            {"type": "Linear", "input_size": 4, "output_size": 2, "init": "uniform"},
             {"type": "Softmax"},
         ],
         "settings": {"epochs": 20},

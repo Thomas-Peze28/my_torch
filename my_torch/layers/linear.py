@@ -4,6 +4,7 @@ Linear layer
 
 import numpy as np
 
+from my_torch.layers.initializers import INITIALIZERS
 from my_torch.layers.layer import Layer
 
 
@@ -18,8 +19,10 @@ class Linear(Layer):
         output_size: Number of neurons, so number of outputs.
         seed: Seed of the random starting weights, to get the same
             network every time. None gives different weights each time.
-
+        init: How to draw the starting weights: "uniform", "lecun", "xavier" or "he".
+        
     Attributes:
+        init: Name of the way the starting weights were drawn.
         weights: Array of shape (output_size, input_size), one row per neuron.
         bias: Array of shape (output_size,), one bias per neuron.
         weights_gradient: How to change each weight to reduce the error,
@@ -28,15 +31,20 @@ class Linear(Layer):
             shape as bias. Filled by backward().
 
     Raises:
-        ValueError: If a size is not a positive whole number.
+        ValueError: If a size is not a positive whole number, or init is
+            unknown.
     """
 
-    def __init__(self, input_size: int, output_size: int, seed: int | None = None) -> None:
+    def __init__(self, input_size: int, output_size: int, seed: int | None = None,
+                 init: str = "uniform") -> None:
         for size in (input_size, output_size):
             if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
                 raise ValueError(f"Layer sizes must be positive whole numbers, not {size!r}")
+        if init not in INITIALIZERS:
+            raise ValueError(f'Unknown init "{init}", choose one of: {", ".join(INITIALIZERS)}')
         rng = np.random.default_rng(seed)
-        self.weights = rng.uniform(-1.0, 1.0, size=(output_size, input_size))
+        self.init = init
+        self.weights = INITIALIZERS[init](rng, input_size, output_size)
         self.bias = np.zeros(output_size)
         self.weights_gradient = np.zeros_like(self.weights)
         self.bias_gradient = np.zeros_like(self.bias)
@@ -85,8 +93,7 @@ class Linear(Layer):
         """Describe the layer, so that it can be saved and built again.
 
         Returns:
-            {"type": "Linear", "input_size": ..., "output_size": ...}, read
-            from the shape of the weights.
-        """
+            {"type": "Linear", "input_size": ..., "output_size": ..., "init": ...},
+            with the sizes and the name of the initializer."""
         output_size, input_size = self.weights.shape
-        return {"type": "Linear", "input_size": input_size, "output_size": output_size}
+        return {"type": "Linear", "input_size": input_size, "output_size": output_size, "init": self.init}
