@@ -130,7 +130,7 @@ def test_a_loaded_network_can_keep_training(tmp_path):
     inputs = np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
     targets = np.eye(2)[[0, 1, 1, 0]]
     loaded = saved_copy(Network([Linear(2, 4, seed=0), Sigmoid(), Linear(4, 2, seed=1000), Softmax()]), tmp_path)
-    history = loaded.train(inputs, targets, CrossEntropyLoss(), SGD(loaded, 0.5), 300, 4, seed=0)
+    history = loaded.train(inputs, targets, CrossEntropyLoss(), SGD(loaded, 0.5), 300, 4, seed=0)["loss"]
     assert history[-1] < history[0]
 
 

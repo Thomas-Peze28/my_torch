@@ -17,7 +17,9 @@ It is a JSON file with two keys:
     "learning_rate": 0.1,
     "epochs": 10,
     "batch_size": 64,
-    "seed": 42
+    "seed": 42,
+    "validation_split": 0.1,
+    "patience": 3
   }
 }
 ```
@@ -54,9 +56,13 @@ How to train the network. They are copied as they are into the generated network
 | `loss` | `CrossEntropyLoss` or `MSELoss` |
 | `optimizer` | `SGD` (same step for every value) or `Adam` (a step adapted to each value) |
 | `learning_rate` | size of each correction: about `0.1` for `SGD`, `0.001` for `Adam` |
-| `epochs` | number of passes over all the chessboards |
+| `epochs` | maximum number of passes over all the chessboards |
 | `batch_size` | number of chessboards in each mini-batch |
 | `seed` | makes the generated networks and the training the same every time |
+| `validation_split` | part of the chessboards put aside to check the network after every epoch, never used to learn (default `0.1` = 10%, `0` = none) |
+| `patience` | number of epochs without progress on the chessboards put aside before stopping (default `3`) |
+
+With `validation_split`, `--train` keeps the weights of the epoch with the most right answers on the chessboards put aside, and stops when this accuracy has not gone up for `patience` epochs: going on would only learn the other chessboards by heart (overfitting).
 
 ## Files
 

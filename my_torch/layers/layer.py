@@ -6,6 +6,9 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+Parameter = tuple[np.ndarray, np.ndarray]
+"""A value the network learns and its gradient: (value, gradient), same shape."""
+
 
 class Layer(ABC):
     """Base class of every layer of a network.
@@ -41,7 +44,7 @@ class Layer(ABC):
             Error on the inputs of this layer, same shape as the inputs.
         """
 
-    def parameters(self) -> list[tuple[np.ndarray, np.ndarray]]:
+    def parameters(self) -> list[Parameter]:
         """List the values the layer learns, each with its gradient.
 
         Layers without weights, like activations, have nothing to learn:
