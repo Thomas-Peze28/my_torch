@@ -47,8 +47,21 @@ Share of right answers. The test file is only used for the network that is pushe
 
 | Network | Config | Layers | Training time | Train | Validation | Test |
 |---|---|---|---|---|---|---|
-| `my_torch_network.nn` (v0.2.0) | `basic_network.conf` | 769 → 64 → 5 | 2 min | 62.5% | 61.9% | 62.4% |
-| not pushed | `chess_network.conf` | 769 → 256 → 64 → 5 | 10 min | 62.4% | 61.1% | - |
+| `my_torch_network.nn` (v0.2.0) | `basic_network.conf` of v0.2.0 (`uniform` weights) | 769 → 64 → 5 | 2 min | 62.5% | 61.9% | 62.4% |
+| not pushed | `chess_network.conf` of v0.2.0 (`uniform` weights) | 769 → 256 → 64 → 5 | 10 min | 62.4% | 61.1% | - |
 
 Train and validation are almost the same: the networks do not learn by heart, they do not learn enough.
 The bigger network is not better, so the next step is to improve how the networks learn (starting weights, learning rate), not their size.
+
+### Starting weights
+
+The same network (`basic_network.conf`: 769 → 64 → 5, SGD, learning rate 0.1, 10 epochs, seed 42), trained 4 times with only `init` changed:
+
+| `init` | Loss, first epoch → last | Validation |
+|---|---|---|
+| `uniform` | 1.113 → 0.787 | 61.9% |
+| `lecun` | 0.820 → 0.445 | 78.6% |
+| `xavier` | 0.825 → 0.455 | 78.1% |
+| `he` | 0.821 → 0.449 | **79.2%** |
+
+Weights scaled to the size of the layer give +17 points. `he`, made for `ReLU`, is the best: the configurations now use it.
