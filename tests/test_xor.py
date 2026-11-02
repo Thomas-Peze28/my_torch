@@ -47,7 +47,7 @@ SETUPS = {
 
 def train(network, loss, learning_rate, epochs, batch_size=4, seed=0, answers=XOR_ANSWERS):
     return network.train(INPUTS, one_hot(answers), loss, SGD(network, learning_rate),
-                         epochs, batch_size, seed)
+                         epochs, batch_size, seed)["loss"]
 
 
 def right_answer_probabilities(network, answers=XOR_ANSWERS):
@@ -150,6 +150,6 @@ def test_xor_stays_learned_when_training_continues():
 def test_xor_is_learned_with_adam(seed):
     network = relu_network(seed)
     history = network.train(INPUTS, one_hot(XOR_ANSWERS), CrossEntropyLoss(), Adam(network, learning_rate=0.01),
-                            epochs=1000, batch_size=4, seed=seed)
+                            epochs=1000, batch_size=4, seed=seed)["loss"]
     assert history[-1] < 0.05
     assert (right_answer_probabilities(network) > 0.9).all()

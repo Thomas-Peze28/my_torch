@@ -122,4 +122,4 @@ def run_train(loadfile: str, chessfile: str, savefile: str | None = None) -> Non
                             settings["epochs"], settings["batch_size"], settings["seed"])
     network.save(target)
     print(f"Trained on {len(fens)} chessboards for {settings['epochs']} epochs: "
-          f"loss {history[0]:.4f} -> {history[-1]:.4f}")
+          f"loss {history['loss'][0]:.4f} -> {history['loss'][-1]:.4f}")

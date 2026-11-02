@@ -16,6 +16,9 @@ from my_torch.losses import Loss
 if TYPE_CHECKING:
     from my_torch.optimizers import Optimizer
 
+Examples = tuple[np.ndarray, np.ndarray]
+"""Examples and their expected outputs: (inputs, targets), one row per example."""
+
 FILE_FORMAT = "my_torch"
 FILE_VERSION = 1.0
 
@@ -111,16 +114,25 @@ class Network:
         inputs: np.ndarray,
         targets: np.ndarray,
         loss: Loss,
-        optimizer: Optimizer,
+        optimizer: "Optimizer",
         epochs: int,
         batch_size: int,
         seed: int | None = None,
-    ) -> list[float]:
+        validation: Examples | None = None,
+        patience: int | None = None,
+        verbose: bool = False,
+    ) -> dict:
         """Train the network on the examples for several epochs.
 
         At every epoch, the examples are shuffled and cut into mini-batches.
         For every mini-batch: forward pass, loss, backward pass, then the
         optimizer changes the weights.
+
+        With validation examples, the network is also checked on them after
+        every epoch. It keeps the weights of its best epoch (highest
+        validation accuracy), and stops early when the validation accuracy
+        has not improved for `patience` epochs: going on would only learn
+        the training examples by heart.
 
         Args:
             inputs: Examples, shape (examples, inputs of the first layer).
@@ -128,37 +140,107 @@ class Network:
             loss: Measures how wrong the network is.
             optimizer: Changes the weights after each mini-batch. It must
                 work on this network.
-            epochs: Number of passes over all the examples.
+            epochs: Maximum number of passes over all the examples.
             batch_size: Number of examples in each mini-batch. The last
                 mini-batch of an epoch can be smaller.
             seed: Seed of the shuffling, to train the same way every time.
+            validation: (inputs, targets) never used to learn, only to check
+                the network. None trains without checking.
+            patience: Number of epochs without progress on the validation
+                before stopping. None never stops early.
+            verbose: True prints one line per epoch.
 
         Returns:
-            The average loss of each epoch, from the first to the last.
+            The history of the training, one value per epoch:
+            {"loss": [...], "accuracy": [...], "val_loss": [...],
+            "val_accuracy": [...], "best_epoch": n}. Accuracy is the share
+            of examples whose biggest output is the expected one. The
+            validation lists are empty and best_epoch is None without
+            validation.
 
         Raises:
-            ValueError: If epochs or batch_size is not positive, or if
-                inputs and targets do not have the same number of examples.
+            ValueError: If epochs, batch_size or patience is not positive,
+                or if inputs and targets do not have the same number of
+                examples.
         """
         if epochs <= 0 or batch_size <= 0:
             raise ValueError("Epochs and batch_size must be positive")
+        if patience is not None and patience <= 0:
+            raise ValueError("Patience must be positive")
         if len(inputs) != len(targets):
             raise ValueError("Inputs and targets must have the same number of examples")
 
         rng = np.random.default_rng(seed)
-        history = []
-        for _ in range(epochs):
-            order = rng.permutation(len(inputs))
-            total_loss = 0.0
-            for start in range(0, len(inputs), batch_size):
-                batch = order[start:start + batch_size]
-                predictions = self.forward(inputs[batch])
-                batch_loss = loss.forward(predictions, targets[batch])
-                self.backward(loss.backward())
-                optimizer.step()
-                total_loss += batch_loss * len(batch)
-            history.append(total_loss / len(inputs))
+        history = {"loss": [], "accuracy": [], "val_loss": [], "val_accuracy": [], "best_epoch": None}
+        best_weights = None
+        for epoch in range(1, epochs + 1):
+            train_loss, train_accuracy = self._train_one_epoch(inputs, targets, loss, optimizer, batch_size, rng)
+            history["loss"].append(train_loss)
+            history["accuracy"].append(train_accuracy)
+            message = f"Epoch {epoch}/{epochs}: loss {train_loss:.4f}, accuracy {train_accuracy:.1%}"
+
+            if validation is not None:
+                val_loss, val_accuracy = self.evaluate(validation[0], validation[1], loss)
+                is_best = val_accuracy > max(history["val_accuracy"], default=-1)
+                history["val_loss"].append(val_loss)
+                history["val_accuracy"].append(val_accuracy)
+                message += f" | validation loss {val_loss:.4f}, accuracy {val_accuracy:.1%}"
+                if is_best:
+                    history["best_epoch"] = epoch
+                    best_weights = self._copy_weights()
+                    message += " (best)"
+
+            if verbose:
+                print(message, flush=True)
+            if patience is not None and history["best_epoch"] is not None \
+                    and epoch - history["best_epoch"] >= patience:
+                if verbose:
+                    print(f"No progress for {patience} epochs: stopped", flush=True)
+                break
+
+        if best_weights is not None:
+            self._set_weights(best_weights)
         return history
+
+    def _train_one_epoch(self, inputs: np.ndarray, targets: np.ndarray, loss: Loss, optimizer: "Optimizer",
+                         batch_size: int, rng: np.random.Generator) -> tuple[float, float]:
+        """Learn once from every example, in mini-batches of a random order.
+
+        Returns:
+            (average loss, accuracy) over the examples of this epoch,
+            measured on the mini-batches while learning.
+        """
+        order = rng.permutation(len(inputs))
+        total_loss = 0.0
+        right = 0
+        for start in range(0, len(inputs), batch_size):
+            batch = order[start:start + batch_size]
+            predictions = self.forward(inputs[batch])
+            total_loss += loss.forward(predictions, targets[batch]) * len(batch)
+            right += np.sum(predictions.argmax(axis=1) == targets[batch].argmax(axis=1))
+            self.backward(loss.backward())
+            optimizer.step()
+        return float(total_loss / len(inputs)), float(right / len(inputs))
+
+    def evaluate(self, inputs: np.ndarray, targets: np.ndarray, loss: Loss) -> tuple[float, float]:
+        """Check the network on examples, without learning from them.
+
+        Returns:
+            (loss, accuracy). Accuracy is the share of examples whose
+            biggest output is the expected one (0.9 = 90%).
+        """
+        predictions = self.forward(inputs)
+        accuracy = np.mean(predictions.argmax(axis=1) == targets.argmax(axis=1))
+        return float(loss.forward(predictions, targets)), float(accuracy)
+
+    def _copy_weights(self) -> list[np.ndarray]:
+        """Take a copy of every weight and bias, like a photo of the network."""
+        return [value.copy() for value, _ in self.parameters()]
+
+    def _set_weights(self, copies: list[np.ndarray]) -> None:
+        """Put back the weights and biases of a copy made by _copy_weights()."""
+        for (value, _), copy in zip(self.parameters(), copies):
+            value[...] = copy
 
     def save(self, path: str) -> None:
         """Write the network to one file, to load it again later.
