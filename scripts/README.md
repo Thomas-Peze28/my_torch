@@ -47,11 +47,12 @@ Share of right answers. The test file is only used for the network that is pushe
 
 | Network | Config | Layers | Training time | Train | Validation | Test |
 |---|---|---|---|---|---|---|
-| `my_torch_network.nn` (v0.2.0) | `basic_network.conf` of v0.2.0 (`uniform` weights) | 769 → 64 → 5 | 2 min | 62.5% | 61.9% | 62.4% |
+| `my_torch_network.nn` (v0.2.1) | `basic_network.conf` (`he` weights) | 769 → 64 → 5 | 2 min | 81.8% | 79.2% | 79.1% |
+| v0.2.0 network | `basic_network.conf` of v0.2.0 (`uniform` weights) | 769 → 64 → 5 | 2 min | 62.5% | 61.9% | 62.4% |
 | not pushed | `chess_network.conf` of v0.2.0 (`uniform` weights) | 769 → 256 → 64 → 5 | 10 min | 62.4% | 61.1% | - |
 
-Train and validation are almost the same: the networks do not learn by heart, they do not learn enough.
-The bigger network is not better, so the next step is to improve how the networks learn (starting weights, learning rate), not their size.
+With `uniform` weights, train and validation are almost the same: the networks do not learn by heart, they do not learn enough, and the bigger network is not better.
+With `he` weights (see below), the same small network gains 17 points. Train is now 2.6 points above validation: the network starts to learn a little by heart, to watch during longer trainings.
 
 ### Starting weights
 
