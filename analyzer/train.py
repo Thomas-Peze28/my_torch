@@ -120,7 +120,7 @@ def check_writable(path: str) -> None:
         raise ValueError(f"cannot save the network to {path}: permission denied")
 
 
-def run_train(loadfile: str, chessfile: str, savefile: str | None = None) -> None:
+def run_train(loadfile: str, chessfile: str, savefile: str | None = None) -> dict:
     """Train a network on the chessboards of a file, then save it.
 
     The loss, optimizer, learning rate, number of epochs, batch size and
@@ -135,6 +135,9 @@ def run_train(loadfile: str, chessfile: str, savefile: str | None = None) -> Non
         chessfile: The chessboard file; every line needs its expected answer.
         savefile: Where to save the trained network. None saves it over
             loadfile.
+
+    Returns:
+        The history of the training, as returned by Network.train().
 
     Raises:
         FileNotFoundError: If a file does not exist.
@@ -163,3 +166,4 @@ def run_train(loadfile: str, chessfile: str, savefile: str | None = None) -> Non
         best = history["best_epoch"]
         print(f"Kept epoch {best}, checked on {len(validation[0])} chessboards put aside: "
               f"validation accuracy {history['val_accuracy'][best - 1]:.1%}")
+    return history
