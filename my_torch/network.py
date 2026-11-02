@@ -10,6 +10,7 @@ import numpy as np
 
 from my_torch.activations import ReLU, Sigmoid, Softmax
 from my_torch.layers import Layer, Linear
+from my_torch.layers.layer import Parameter
 from my_torch.losses import Loss
 
 if TYPE_CHECKING:
@@ -81,7 +82,7 @@ class Network:
             error = layer.backward(error)
         return error
 
-    def parameters(self) -> list[tuple[np.ndarray, np.ndarray]]:
+    def parameters(self) -> list[Parameter]:
         """List the values every layer learns, each with its gradient.
 
         Returns:

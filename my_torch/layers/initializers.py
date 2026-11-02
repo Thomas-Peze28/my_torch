@@ -10,6 +10,9 @@ from collections.abc import Callable
 
 import numpy as np
 
+Initializer = Callable[[np.random.Generator, int, int], np.ndarray]
+"""A function that draws starting weights: (rng, input_size, output_size) -> weights."""
+
 
 def uniform(rng: np.random.Generator, input_size: int, output_size: int) -> np.ndarray:
     """Weights between -1 and 1, whatever the size of the layer.
@@ -46,7 +49,7 @@ def he(rng: np.random.Generator, input_size: int, output_size: int) -> np.ndarra
     return rng.normal(0.0, np.sqrt(2.0 / input_size), size=(output_size, input_size))
 
 
-INITIALIZERS: dict[str, Callable[[np.random.Generator, int, int], np.ndarray]] = {
+INITIALIZERS: dict[str, Initializer] = {
     "uniform": uniform,
     "lecun": lecun,
     "xavier": xavier,
