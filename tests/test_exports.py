@@ -13,6 +13,7 @@ import my_torch.network
 import my_torch.optimizers
 
 PUBLIC_CLASSES = {
+    "Adam": my_torch.optimizers,
     "CrossEntropyLoss": my_torch.losses,
     "Layer": my_torch.layers,
     "Linear": my_torch.layers,
@@ -29,7 +30,7 @@ PUBLIC_CLASSES = {
 
 def test_the_whole_library_can_be_imported_in_one_line():
     from my_torch import (
-        SGD, CrossEntropyLoss, Layer, Linear, Loss, MSELoss,
+        SGD, Adam, CrossEntropyLoss, Layer, Linear, Loss, MSELoss,
         Network, Optimizer, ReLU, Sigmoid, Softmax,
     )
 

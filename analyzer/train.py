@@ -10,7 +10,7 @@ from analyzer.chess_network import check_chess_network
 from analyzer.chessfile import read_chessfile
 from analyzer.encoding import encode_boards
 from analyzer.labels import LABELS, label_to_index
-from my_torch import SGD, CrossEntropyLoss, MSELoss, Network
+from my_torch import SGD, Adam, CrossEntropyLoss, MSELoss, Network
 
 DEFAULT_SETTINGS = {
     "loss": "CrossEntropyLoss",
@@ -21,7 +21,7 @@ DEFAULT_SETTINGS = {
     "seed": None,
 }
 LOSSES = {"CrossEntropyLoss": CrossEntropyLoss, "MSELoss": MSELoss}
-OPTIMIZERS = {"SGD": SGD}
+OPTIMIZERS = {"SGD": SGD, "Adam": Adam}
 
 
 def _is_number(value: object) -> bool:

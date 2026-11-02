@@ -52,8 +52,8 @@ How to train the network. They are copied as they are into the generated network
 | Key | Meaning |
 |---|---|
 | `loss` | `CrossEntropyLoss` or `MSELoss` |
-| `optimizer` | `SGD` |
-| `learning_rate` | size of each correction |
+| `optimizer` | `SGD` (same step for every value) or `Adam` (a step adapted to each value) |
+| `learning_rate` | size of each correction: about `0.1` for `SGD`, `0.001` for `Adam` |
 | `epochs` | number of passes over all the chessboards |
 | `batch_size` | number of chessboards in each mini-batch |
 | `seed` | makes the generated networks and the training the same every time |
