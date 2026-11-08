@@ -7,10 +7,13 @@ answer. Then it splits them into three files:
     train.txt       80% to learn
     validation.txt  10% to check the network during training
     test.txt        10% for the final mark, never used to choose anything
+With --mirror, train.txt also gets every training chessboard seen in a
+mirror (left and right swapped), which has the same answer: twice more
+examples to learn from. validation.txt and test.txt do not change.
 The same seed always gives the same files.
 
 Run it from the root of the repository:
-    python3 -m scripts.prepare_dataset [--dataset FOLDER] [--output FOLDER] [--seed N]
+    python3 -m scripts.prepare_dataset [--dataset FOLDER] [--output FOLDER] [--seed N] [--mirror]
 """
 
 import argparse
@@ -94,6 +97,51 @@ def remove_duplicates(boards: list[Board]) -> list[Board]:
     return unique
 
 
+def mirror_fen(fen: str) -> str:
+    """The same chessboard seen in a mirror: column a becomes h, b becomes g...
+
+    Each rank is read backwards; "3" (three empty squares) stays one
+    character, so this works on the FEN text. A check or a checkmate stays
+    the same, by the same colour. Castling is removed, since the kings and
+    rooks are no longer on their starting squares; the en passant square is
+    mirrored.
+
+    Example:
+        "r3k2r/8/8/8/4P3/8/8/R3K2R b KQkq e3 0 1"
+        gives "r2k3r/8/8/8/3P4/8/8/R2K3R b - d3 0 1".
+    """
+    pieces, side, _, en_passant, *counters = fen.split()
+    pieces = "/".join(rank[::-1] for rank in pieces.split("/"))
+    if en_passant != "-":
+        en_passant = "abcdefgh"["hgfedcba".index(en_passant[0])] + en_passant[1:]
+    return " ".join([pieces, side, "-", en_passant, *counters])
+
+
+def add_mirrors(train: list[Board], others: list[Board]) -> list[Board]:
+    """Add the mirror of every training chessboard to the training part.
+
+    A mirror is not added if the network would already see it: a position
+    that is already in the training part (a symmetric chessboard is its own
+    mirror), or one that is in the validation or test part, which would let
+    the network learn a chessboard it is marked on.
+
+    Args:
+        train: The training boards.
+        others: The validation and test boards.
+
+    Returns:
+        The training boards followed by their new mirrors.
+    """
+    seen = {position_key(fen) for fen, _ in train + others}
+    mirrors = []
+    for fen, answer in train:
+        mirror = mirror_fen(fen)
+        if position_key(mirror) not in seen:
+            seen.add(position_key(mirror))
+            mirrors.append((mirror, answer))
+    return train + mirrors
+
+
 def shuffle_boards(boards: list[Board], seed: int) -> list[Board]:
     """Return the boards in a random order, always the same for one seed."""
     shuffled = list(boards)
@@ -153,6 +201,8 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     parser.add_argument("--dataset", default=DATASET_FOLDER, help="folder with the chessboard files")
     parser.add_argument("--output", default=DATASET_FOLDER, help="folder where the three files are written")
     parser.add_argument("--seed", type=int, default=SEED, help="seed of the shuffle")
+    parser.add_argument("--mirror", action="store_true",
+                        help="add the mirror of every training chessboard to train.txt")
     return parser.parse_args(args)
 
 
@@ -164,6 +214,10 @@ def main(args: list[str]) -> int:
         boards = read_dataset(paths)
         unique = remove_duplicates(boards)
         parts = split_boards(shuffle_boards(unique, options.seed))
+        if options.mirror:
+            original = len(parts["train"])
+            mirrored = add_mirrors(parts["train"], parts["validation"] + parts["test"])
+            parts["train"] = shuffle_boards(mirrored, options.seed)
         for name, part in parts.items():
             write_boards(part, os.path.join(options.output, f"{name}.txt"))
     except (ValueError, OSError) as error:
@@ -173,6 +227,8 @@ def main(args: list[str]) -> int:
     print(f"Read {len(boards)} chessboards from {len(paths)} files")
     print(f"Removed {len(boards) - len(unique)} duplicates")
     print(f"Shuffled {len(unique)} chessboards with seed {options.seed}")
+    if options.mirror:
+        print(f"Added {len(parts['train']) - original} mirrored chessboards to train.txt")
     print_summary(unique, parts, options.output)
     return EXIT_OK
 
