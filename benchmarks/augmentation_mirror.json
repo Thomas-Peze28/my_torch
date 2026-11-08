@@ -1,5 +1,5 @@
 {
-  "config": "configs/chess_network.conf",
+  "config": "configs/chess_network_256.conf",
   "history": {
     "loss": [
       0.6213528962782521,
