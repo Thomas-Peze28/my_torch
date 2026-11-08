@@ -101,6 +101,24 @@ Two identical small networks, one corrected by SGD, the other by Adam:
 - Adam gives each weight its own step size. Many of our weights are rarely used (only about 20 of the 769 inputs are 1 on a chessboard), and Adam pushes them more.
 - **Adam** is chosen. It is 1.5 times slower per epoch, and learns by heart a bit faster, which early stopping handles.
 
+### Learning rate
+
+The learning rate is the size of each correction. Same small network with Adam, four learning rates:
+
+![Learning rate](../benchmarks/learning_rate.png)
+
+| Learning rate | Validation |
+|---|---|
+| 0.0001 | 71.4% |
+| **0.001** | **80.5%** |
+| 0.01 | 79.6% |
+| 0.1 | 54.2% |
+
+- **Blue** (0.0001): steps too small. It still goes down after 10 epochs, slowly: it would need many more epochs.
+- **Red** (0.1): steps too big. The weights jump over the good values, and the network gets worse than at epoch 1.
+- **Orange** (0.001) and **green** (0.01) learn fast. Green is better at the start, then flattens lower and learns a bit more by heart.
+- **0.001** is chosen, the usual value for Adam. The pushed network uses it too.
+
 ## 6. Network size
 
 On the first dataset (572,443 chessboards):

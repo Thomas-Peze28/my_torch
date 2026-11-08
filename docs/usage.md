@@ -164,7 +164,7 @@ make benchmark   # about 2 hours
 |---|---|---|
 | `make dataset` | removes duplicates, shuffles, cuts into 3 files, adds every training chessboard in a mirror and with its colours swapped | `dataset/train.txt` (80%, four times with the copies), `validation.txt` (10%), `test.txt` (10%) |
 | `make train` | trains `configs/chess_network.conf`, draws its graphs | `my_torch_network.nn`, `benchmarks/pushed_network*` |
-| `make benchmark` | trains the networks of `configs/benchmarks/` without copies, then `chess_network_256.conf` with more and more copies, draws the comparisons | `benchmarks/init.png`, `optimizer.png`, `augmentation.png`, `size.png` |
+| `make benchmark` | trains the networks of `configs/benchmarks/` without copies, then `chess_network_256.conf` with more and more copies, draws the comparisons | `benchmarks/init.png`, `optimizer.png`, `learning_rate.png`, `augmentation.png`, `size.png` |
 
 The seeds are fixed: the same commands give the same files, byte for byte.
 
