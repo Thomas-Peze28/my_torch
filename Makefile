@@ -25,7 +25,7 @@ tests_run:
 	$(PYTHON) -m pytest tests
 
 dataset:
-	$(PYTHON) -m scripts.prepare_dataset
+	$(PYTHON) -m scripts.prepare_dataset --mirror
 
 train:
 	mkdir -p benchmarks
