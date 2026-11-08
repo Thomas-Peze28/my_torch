@@ -11,6 +11,7 @@
 7. [Errors](#7-errors)
 8. [Make the pushed network again](#8-make-the-pushed-network-again)
 9. [Tests](#9-tests)
+10. [Demo](#10-demo)
 
 ## 1. Install
 
@@ -164,7 +165,7 @@ make benchmark   # about 2 hours
 |---|---|---|
 | `make dataset` | removes duplicates, shuffles, cuts into 3 files, adds every training chessboard in a mirror and with its colours swapped | `dataset/train.txt` (80%, four times with the copies), `validation.txt` (10%), `test.txt` (10%) |
 | `make train` | trains `configs/chess_network.conf`, draws its graphs | `my_torch_network.nn`, `benchmarks/pushed_network*` |
-| `make benchmark` | trains the networks of `configs/benchmarks/` without copies, then `chess_network_256.conf` with more and more copies, draws the comparisons | `benchmarks/init.png`, `optimizer.png`, `learning_rate.png`, `augmentation.png`, `size.png` |
+| `make benchmark` | trains the networks of `configs/benchmarks/` without copies, then `chess_network_256.conf` with more and more copies, draws the comparisons | `benchmarks/init.png`, `optimizer.png`, `learning_rate.png`, `batch_size.png`, `activation.png`, `loss.png`, `augmentation.png`, `size.png` |
 
 The seeds are fixed: the same commands give the same files, byte for byte.
 
@@ -177,3 +178,20 @@ make tests_run
 ```
 
 The tests (pytest) cover every part: layers on examples computed by hand, the library learning XOR, save and load, the programs run for real on broken files, the scripts on a tiny dataset. The CI runs them on every pull request, in the grader's Docker image.
+
+## 10. Demo
+
+Scripts that show the project step by step, with a pause between steps (press Enter). They need the dataset (`make dataset`).
+
+```bash
+demo/all.sh
+```
+
+| Script | What it shows |
+|---|---|
+| `demo/1_predict.sh [FILE] [COUNT]` | chessboards drawn in the terminal, then the expected answer and the answer of the network (10 test chessboards by default) |
+| `demo/2_accuracy.sh` | the score on the 71,556 test chessboards, for each answer |
+| `demo/3_errors.sh` | wrong uses of the analyzer: a message and exit code 84 each time |
+| `demo/4_train.sh` | a small network created and trained live in 30 seconds, then compared with the pushed network |
+| `demo/5_graphs.sh` | the benchmark graphs, one by one |
+| `demo/6_tests.sh` | the unit tests |

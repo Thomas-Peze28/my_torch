@@ -10,6 +10,7 @@
 6. [Network size](#6-network-size)
 7. [More chessboards](#7-more-chessboards)
 8. [Mistakes](#8-mistakes)
+9. [Other settings](#9-other-settings)
 
 Every setting of the network was chosen by measuring it. All graphs can be made again with `make train` and `make benchmark` ([Usage](usage.md#8-make-the-pushed-network-again)).
 
@@ -64,6 +65,8 @@ On comparison graphs, **one colour is one network**. The networks are the same e
 - **The dot**: epoch 10 has the best score on the chessboards put aside (92.3%), so it is kept. The training stopped 3 epochs later.
 
 The best epoch is chosen by **accuracy**, not loss: the grader counts right answers. In v0.2.3, chosen by loss, epoch 4 would have been kept, with 82.6% instead of 83.5%.
+
+**Patience of 3 epochs**: in our trainings, a better epoch sometimes came one epoch after an epoch without progress (epoch 11 of the mirrored training, after epoch 10), and always by 0.2 point or less. Three epochs leave room for that, then stop: the network only learns more by heart, and each epoch of the pushed network takes 4 minutes.
 
 Early stopping, measured in v0.2.3: compared with 20 epochs without it, the gap between train and validation went down from 13.7 to 10.8 points, for the same score.
 
@@ -193,3 +196,46 @@ What it shows:
 
 - The network **almost never mixes up the colours** (3 times out of 71,556 test chessboards): the side to move is one of its inputs.
 - Its mistakes are telling a **check from a checkmate**: to know that the king cannot escape, it must see every square around it. Then telling a **check from nothing**: it must see that two far pieces are on the same line with nothing between them.
+
+## 9. Other settings
+
+Same small network as for the optimizer (769 → 64 → 5, He, Adam, learning rate 0.001, 10 epochs), one setting changed at a time.
+
+### Batch size
+
+The number of chessboards learned before each correction.
+
+![Batch size](../benchmarks/batch_size.png)
+
+| Batch size | Validation | Training |
+|---|---|---|
+| 16 | 81.2% | 2.3 min |
+| **64** | **80.5%** | **1.5 min** |
+| 256 | 79.5% | 0.8 min |
+
+- Smaller batches make more corrections per epoch, so they learn a bit more in 10 epochs, but NumPy works on smaller arrays and it is slower.
+- **64** is kept as a compromise: 0.7 point below 16, but 1.5 times faster. On the pushed network, 16 would turn a 54-minute training into about 80 minutes.
+
+### Activation
+
+![Activation](../benchmarks/activation.png)
+
+| Activation | Validation |
+|---|---|
+| **ReLU** | **80.5%** |
+| Sigmoid | 77.1% |
+
+- **ReLU** is kept: 3.4 points better. Sigmoid squashes big totals to almost 1, where it hardly changes: the corrections that go back through it become tiny and the network learns slower.
+- He starting weights are made for ReLU.
+
+### Loss
+
+![Loss](../benchmarks/loss.png)
+
+| Loss | Validation |
+|---|---|
+| **Cross-entropy** | **80.5%** |
+| MSE | 80.7% |
+
+- The two give the same accuracy here (0.2 point apart). Their loss values are not on the same scale, so only the right graph can compare them.
+- **Cross-entropy** is kept: it is made for choosing one answer among several after Softmax, and its value tells how sure the network was of the right answer (see [2](#2-how-to-read-the-graphs)).
