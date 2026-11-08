@@ -7,8 +7,9 @@ repository.
 
 import pytest
 
-from scripts.prepare_dataset import (add_mirrors, find_files, main, mirror_fen, position_key,
-                                     read_dataset, remove_duplicates, shuffle_boards, split_boards)
+from scripts.prepare_dataset import (add_copies, find_files, main, mirror_board, mirror_fen, position_key,
+                                     read_dataset, remove_duplicates, shuffle_boards, split_boards,
+                                     swap_colors_board, swap_colors_fen)
 
 CHECK = "8/8/R2k4/4r1p1/8/5K2/5P2/8 b - - 7 59"
 CHECK_LATER = "8/8/R2k4/4r1p1/8/5K2/5P2/8 b - - 9 60"
@@ -71,12 +72,25 @@ def test_mirror_fen_twice_gives_the_same_pieces():
         assert position_key(mirror_fen(mirror_fen(fen))) == position_key(fen)
 
 
-def test_add_mirrors_keeps_the_answer_and_skips_known_positions():
+def test_add_copies_keeps_the_answer_and_skips_known_positions():
     symmetric = "8/8/8/3QQ3/8/8/8/8 w - - 0 1"
     train = [(CHECK, "Check White"), (symmetric, "Nothing")]
     others = [(mirror_fen(MATE), "Checkmate White")]
-    result = add_mirrors(train + [(MATE, "Checkmate White")], others)
+    result = add_copies(train + [(MATE, "Checkmate White")], others, mirror_board)
     assert result == train + [(MATE, "Checkmate White"), (mirror_fen(CHECK), "Check White")]
+
+
+def test_swap_colors_fen_turns_the_board_and_the_colours():
+    assert swap_colors_fen(CHECK) == "8/5p2/5k2/8/4R1P1/r2K4/8/8 w - - 7 59"
+    assert swap_colors_fen("r3k2r/8/8/8/4P3/8/8/R3K1R1 b Qk e3 0 1") == "r3k1r1/8/8/4p3/8/8/8/R3K2R w Kq e6 0 1"
+    for fen in (CHECK, START, MATE):
+        assert swap_colors_fen(swap_colors_fen(fen)) == fen
+
+
+@pytest.mark.parametrize("answer, swapped", [("Nothing", "Nothing"), ("Check White", "Check Black"),
+                                             ("Checkmate Black", "Checkmate White")])
+def test_swap_colors_board_swaps_the_colour_of_the_answer(answer, swapped):
+    assert swap_colors_board((CHECK, answer)) == (swap_colors_fen(CHECK), swapped)
 
 
 def test_shuffle_is_the_same_for_one_seed_and_keeps_every_board():
@@ -157,6 +171,20 @@ def test_mirror_only_changes_the_training_file(dataset, tmp_path):
     assert len(train) == 2 * len(read_lines(plain, "train"))
     others = {position_key(line) for name in ("validation", "test") for line in read_lines(mirrored, name)}
     assert not {position_key(line) for line in train} & others
+
+
+def test_mirror_and_swap_colors_give_four_times_the_training_file(dataset, tmp_path):
+    plain, both = tmp_path / "plain", tmp_path / "both"
+    plain.mkdir()
+    both.mkdir()
+    main(["--dataset", str(dataset), "--output", str(plain)])
+    main(["--dataset", str(dataset), "--output", str(both), "--mirror", "--swap-colors"])
+
+    assert read_lines(plain, "validation") == read_lines(both, "validation")
+    assert len(read_lines(both, "train")) == 4 * len(read_lines(plain, "train"))
+    answers = [line.split(" ", 6)[6] for line in read_lines(both, "train")]
+    assert answers.count("Check White") == answers.count("Check Black")
+    assert answers.count("Checkmate White") == answers.count("Checkmate Black")
 
 
 def test_main_returns_84_on_a_missing_folder(tmp_path, capsys):
