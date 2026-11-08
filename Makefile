@@ -48,6 +48,7 @@ benchmark:
 	cp benchmarks/pushed_network.json benchmarks/size_512_256.json
 	$(PYTHON) -m scripts.plot_history benchmarks/init_*.json --output benchmarks/init.png --title "Starting weights (769 -> 64 -> 5, SGD 0.1)"
 	$(PYTHON) -m scripts.plot_history benchmarks/optimizer_*.json --output benchmarks/optimizer.png --title "Optimizer (769 -> 64 -> 5, He weights)"
+	$(PYTHON) -m scripts.plot_history benchmarks/learning_rate_*.json --output benchmarks/learning_rate.png --title "Learning rate (769 -> 64 -> 5, Adam)"
 	$(PYTHON) -m scripts.plot_history benchmarks/augmentation_*.json --output benchmarks/augmentation.png --title "More chessboards (769 -> 256 -> 64 -> 5, Adam)"
 	$(PYTHON) -m scripts.plot_history benchmarks/size_*.json --output benchmarks/size.png --title "Network size (mirrored and swapped chessboards)"
 
