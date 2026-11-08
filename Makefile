@@ -25,7 +25,7 @@ tests_run:
 	$(PYTHON) -m pytest tests
 
 dataset:
-	$(PYTHON) -m scripts.prepare_dataset --mirror
+	$(PYTHON) -m scripts.prepare_dataset --mirror --swap-colors
 
 train:
 	mkdir -p benchmarks
