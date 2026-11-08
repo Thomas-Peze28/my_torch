@@ -8,7 +8,7 @@
 4. [Starting weights](#4-starting-weights)
 5. [Optimizer](#5-optimizer)
 6. [Network size](#6-network-size)
-7. [Mirrored chessboards](#7-mirrored-chessboards)
+7. [More chessboards](#7-more-chessboards)
 8. [Mistakes](#8-mistakes)
 
 Every setting of the network was chosen by measuring it. All graphs can be made again with `make train` and `make benchmark` ([Usage](usage.md#8-make-the-pushed-network-again)).
@@ -23,9 +23,10 @@ Share of right answers on chessboards the network has never seen:
 | v0.2.1 | + better starting weights (He) | 79.1% |
 | v0.2.2 | + Adam, bigger network | 83.8% |
 | v0.2.3 | + early stopping | 83.3% |
-| v0.3.0 | + mirrored chessboards | **87.0%** |
+| v0.3.0 | + mirrored chessboards | 87.0% |
+| v0.4.0 | + swapped colours, wider network | **92.1%** |
 
-Early stopping does not raise the score, but the network learns less by heart (see [3](#3-the-pushed-network)). The mirrored chessboards raise it and halve the learning by heart (see [7](#7-mirrored-chessboards)).
+Early stopping does not raise the score, but the network learns less by heart (see [3](#3-the-pushed-network)). Showing each chessboard in a mirror and with its colours swapped raises it the most (see [7](#7-more-chessboards)).
 
 ## 2. How to read the graphs
 
@@ -58,9 +59,9 @@ On comparison graphs, **one colour is one network**. The networks are the same e
 
 ![Learning curves of my_torch_network.nn](../benchmarks/pushed_network.png)
 
-- **Right graph**: the dashed line climbs to 93%, but the solid line flattens around 87% after epoch 8. The gap between them is the network **learning by heart**.
-- **Left graph**: the solid loss goes slowly back up after epoch 7. The network gets too sure of itself on chessboards it does not know.
-- **The dot**: epoch 12 has the best score on the chessboards put aside (87.1%), so it is kept. The training stopped 3 epochs later.
+- **Right graph**: the dashed line climbs to 97%, but the solid line flattens around 92% after epoch 6. The gap between them is the network **learning by heart**.
+- **Left graph**: the solid loss goes slowly back up after epoch 6. The network gets too sure of itself on chessboards it does not know.
+- **The dot**: epoch 10 has the best score on the chessboards put aside (92.3%), so it is kept. The training stopped 3 epochs later.
 
 The best epoch is chosen by **accuracy**, not loss: the grader counts right answers. In v0.2.3, chosen by loss, epoch 4 would have been kept, with 82.6% instead of 83.5%.
 
@@ -102,6 +103,8 @@ Two identical small networks, one corrected by SGD, the other by Adam:
 
 ## 6. Network size
 
+On the first dataset (572,443 chessboards):
+
 | Network | Validation |
 |---|---|
 | 769 → 64 → 5 | 81.4% |
@@ -109,25 +112,46 @@ Two identical small networks, one corrected by SGD, the other by Adam:
 
 With He and Adam, the bigger network gains 2 points. With the first settings, it was not better (61.1% against 61.9%): a bigger network only helps once it learns well.
 
-## 7. Mirrored chessboards
+On the dataset with mirrored and swapped chessboards (2,275,920, see [7](#7-more-chessboards)):
 
-A chessboard seen in a mirror (columns a and h swapped, b and g...) has the same answer: a check stays a check, by the same colour. `make dataset` adds the mirror of every training chessboard to `train.txt`, so the network learns from twice more different chessboards (1,141,784 instead of 572,443). Mirrors are never added to `validation.txt` or `test.txt`, and a mirror that is already in one of them is skipped.
+![Network size](../benchmarks/size.png)
 
-Same network (769 → 256 → 64 → 5, He, Adam), with and without the mirrors:
+| Network | Learned (kept epoch) | Validation | Gap | Test | Training |
+|---|---|---|---|---|---|
+| 769 → 256 → 64 → 5 | 94.1% | 91.4% | 2.7 | 91.4% | 31 min |
+| **769 → 512 → 256 → 5** | 96.2% | **92.1%** | 4.1 | **92.1%** | 54 min |
 
-![Mirrored chessboards](../benchmarks/augmentation.png)
+- **Orange** (wider) is above from the first epoch, then flattens after epoch 6.
+- Its dashed line climbs higher: it learns more by heart, and early stopping keeps epoch 10.
+- It is kept: +0.7 point. It finds more checks and fewer false checkmates, and takes a few more checkmates for checks.
 
-| Training chessboards | Learned (kept epoch) | Validation | Gap | Test |
-|---|---|---|---|---|
-| without mirrors | 93.2% | 83.5% | 9.7 | 83.3% |
-| **with mirrors** | 92.6% | **87.0%** | **5.6** | **87.0%** |
 
-- **Orange** (mirrors) is above blue on the right graph at every epoch.
-- Its dashed line climbs **less** than blue: it learns less by heart.
-- On the left graph, the solid loss of blue goes back up from epoch 4, orange stays almost flat.
-- Training takes 9 minutes instead of 7.
+## 7. More chessboards
 
-The mirrors are kept: +3.7 points on the test, and the gap is almost halved.
+Two changes of a chessboard keep its answer, so `make dataset` adds them to `train.txt`:
+
+- **Mirror**: columns a and h swapped, b and g... A check stays a check, by the same colour.
+- **Swapped colours**: the board upside down and every piece of the other colour. The other side plays, so Check White becomes Check Black. The network sees each check with both colours, instead of learning them apart.
+
+They are never added to `validation.txt` or `test.txt`, and a copy that is already in one of them is skipped.
+
+Same network (769 → 256 → 64 → 5, He, Adam), with more and more training chessboards:
+
+![More chessboards](../benchmarks/augmentation.png)
+
+| Training chessboards | Count | Learned (kept epoch) | Validation | Gap | Test |
+|---|---|---|---|---|---|
+| none added | 572,443 | 93.2% | 83.5% | 9.7 | 83.3% |
+| + mirrors | 1,141,784 | 92.6% | 87.0% | 5.6 | 87.0% |
+| **+ mirrors and swapped colours** | **2,275,920** | 94.1% | **91.4%** | **2.7** | **91.4%** |
+
+- Each step is above the previous one on the right graph, from the first epoch.
+- The gap between the dashed and solid lines gets smaller: the network learns less by heart.
+- On the left graph, the solid loss of the first network goes back up from epoch 4; with all the copies it stays flat.
+- Training takes longer: 7, 9, then 31 minutes.
+
+Both are kept: +8.1 points on the test, and the gap is divided by 3.5.
+
 
 ## 8. Mistakes
 
@@ -137,17 +161,17 @@ How to read it:
 
 - each **row** is the right answer, each **column** the answer of the network;
 - the **diagonal** (dark green) holds the right answers;
-- every other cell is a mistake. For example, row Checkmate Black, column Check Black: 13.6% of the Black checkmates were taken for Black checks.
+- every other cell is a mistake. For example, row Checkmate Black, column Check Black: 9.0% of the Black checkmates were taken for Black checks.
 
 | Answer | Found |
 |---|---|
-| Nothing | 91.7% |
-| Check White | 83.5% |
-| Check Black | 81.8% |
-| Checkmate White | 85.0% |
-| Checkmate Black | 85.0% |
+| Nothing | 96.0% |
+| Check White | 88.7% |
+| Check Black | 89.3% |
+| Checkmate White | 89.3% |
+| Checkmate Black | 90.6% |
 
 What it shows:
 
-- The network **never mixes up the colours**: the side to move is one of its inputs.
-- Its mistakes are telling a **check from a checkmate**, and a **check from nothing**. To see a check, it must see that two far pieces are on the same line with nothing between them: the hardest thing to learn.
+- The network **almost never mixes up the colours** (3 times out of 71,556 test chessboards): the side to move is one of its inputs.
+- Its mistakes are telling a **check from a checkmate**: to know that the king cannot escape, it must see every square around it. Then telling a **check from nothing**: it must see that two far pieces are on the same line with nothing between them.

@@ -7,13 +7,15 @@ answer. Then it splits them into three files:
     train.txt       80% to learn
     validation.txt  10% to check the network during training
     test.txt        10% for the final mark, never used to choose anything
-With --mirror, train.txt also gets every training chessboard seen in a
-mirror (left and right swapped), which has the same answer: twice more
-examples to learn from. validation.txt and test.txt do not change.
-The same seed always gives the same files.
+Two options give more training chessboards with a known answer:
+    --mirror        each one seen in a mirror (left and right swapped)
+    --swap-colors   each one seen by the other side, colours swapped
+With both, train.txt is four times bigger. validation.txt and test.txt do
+not change. The same seed always gives the same files.
 
 Run it from the root of the repository:
-    python3 -m scripts.prepare_dataset [--dataset FOLDER] [--output FOLDER] [--seed N] [--mirror]
+    python3 -m scripts.prepare_dataset [--dataset FOLDER] [--output FOLDER] [--seed N]
+                                       [--mirror] [--swap-colors]
 """
 
 import argparse
@@ -22,6 +24,7 @@ import os
 import random
 import sys
 from collections import Counter
+from collections.abc import Callable
 
 from analyzer.chessfile import read_chessfile
 
@@ -117,10 +120,44 @@ def mirror_fen(fen: str) -> str:
     return " ".join([pieces, side, "-", en_passant, *counters])
 
 
-def add_mirrors(train: list[Board], others: list[Board]) -> list[Board]:
-    """Add the mirror of every training chessboard to the training part.
+def swap_colors_fen(fen: str) -> str:
+    """The same chessboard seen by the other side, with the colours swapped.
 
-    A mirror is not added if the network would already see it: a position
+    The ranks are put upside down (rank 8 becomes rank 1) and every piece
+    changes colour, so pawns still move the right way. The other side
+    plays, so a check by White becomes the same check by Black.
+
+    Example:
+        "8/8/R2k4/4r1p1/8/5K2/5P2/8 b - - 7 59"
+        gives "8/5p2/5k2/8/4R1P1/r2K4/8/8 w - - 7 59".
+    """
+    pieces, side, castling, en_passant, *counters = fen.split()
+    pieces = "/".join(reversed(pieces.split("/"))).swapcase()
+    side = "b" if side == "w" else "w"
+    castling = "".join(right for right in "KQkq" if right.swapcase() in castling) or "-"
+    if en_passant != "-":
+        en_passant = en_passant[0] + ("6" if en_passant[1] == "3" else "3")
+    return " ".join([pieces, side, castling, en_passant, *counters])
+
+
+def mirror_board(board: Board) -> Board:
+    """The mirror of a chessboard, with the same answer."""
+    fen, answer = board
+    return mirror_fen(fen), answer
+
+
+def swap_colors_board(board: Board) -> Board:
+    """A chessboard with its colours swapped: "Check White" becomes "Check Black"."""
+    fen, answer = board
+    swapped = {"White": "Black", "Black": "White"}
+    return swap_colors_fen(fen), " ".join(swapped.get(word, word) for word in answer.split())
+
+
+def add_copies(train: list[Board], others: list[Board],
+               change: Callable[[Board], Board]) -> list[Board]:
+    """Add a changed copy of every training chessboard to the training part.
+
+    A copy is not added if the network would already see it: a position
     that is already in the training part (a symmetric chessboard is its own
     mirror), or one that is in the validation or test part, which would let
     the network learn a chessboard it is marked on.
@@ -128,18 +165,19 @@ def add_mirrors(train: list[Board], others: list[Board]) -> list[Board]:
     Args:
         train: The training boards.
         others: The validation and test boards.
+        change: Gives the copy of a board, e.g. mirror_board.
 
     Returns:
-        The training boards followed by their new mirrors.
+        The training boards followed by their new copies.
     """
     seen = {position_key(fen) for fen, _ in train + others}
-    mirrors = []
-    for fen, answer in train:
-        mirror = mirror_fen(fen)
-        if position_key(mirror) not in seen:
-            seen.add(position_key(mirror))
-            mirrors.append((mirror, answer))
-    return train + mirrors
+    copies = []
+    for board in train:
+        copy = change(board)
+        if position_key(copy[0]) not in seen:
+            seen.add(position_key(copy[0]))
+            copies.append(copy)
+    return train + copies
 
 
 def shuffle_boards(boards: list[Board], seed: int) -> list[Board]:
@@ -203,6 +241,8 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=SEED, help="seed of the shuffle")
     parser.add_argument("--mirror", action="store_true",
                         help="add the mirror of every training chessboard to train.txt")
+    parser.add_argument("--swap-colors", action="store_true",
+                        help="add every training chessboard with its colours swapped to train.txt")
     return parser.parse_args(args)
 
 
@@ -214,10 +254,14 @@ def main(args: list[str]) -> int:
         boards = read_dataset(paths)
         unique = remove_duplicates(boards)
         parts = split_boards(shuffle_boards(unique, options.seed))
+        original = len(parts["train"])
+        others = parts["validation"] + parts["test"]
         if options.mirror:
-            original = len(parts["train"])
-            mirrored = add_mirrors(parts["train"], parts["validation"] + parts["test"])
-            parts["train"] = shuffle_boards(mirrored, options.seed)
+            parts["train"] = add_copies(parts["train"], others, mirror_board)
+        if options.swap_colors:
+            parts["train"] = add_copies(parts["train"], others, swap_colors_board)
+        if options.mirror or options.swap_colors:
+            parts["train"] = shuffle_boards(parts["train"], options.seed)
         for name, part in parts.items():
             write_boards(part, os.path.join(options.output, f"{name}.txt"))
     except (ValueError, OSError) as error:
@@ -227,8 +271,8 @@ def main(args: list[str]) -> int:
     print(f"Read {len(boards)} chessboards from {len(paths)} files")
     print(f"Removed {len(boards) - len(unique)} duplicates")
     print(f"Shuffled {len(unique)} chessboards with seed {options.seed}")
-    if options.mirror:
-        print(f"Added {len(parts['train']) - original} mirrored chessboards to train.txt")
+    if options.mirror or options.swap_colors:
+        print(f"Added {len(parts['train']) - original} mirrored or swapped chessboards to train.txt")
     print_summary(unique, parts, options.output)
     return EXIT_OK
 

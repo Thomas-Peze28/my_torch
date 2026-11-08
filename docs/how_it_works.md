@@ -20,7 +20,7 @@ The network is not told where the pieces attack. It must learn what a check is f
 
 ## 2. The network answers
 
-The pushed network has 4 layers of numbers: **769 → 256 → 64 → 5**.
+The pushed network has 4 layers of numbers: **769 → 512 → 256 → 5**.
 
 - A **neuron** adds up its inputs, each multiplied by a **weight**. The weights are what the network learns.
 - A **layer** is a group of neurons that read the same inputs.
@@ -36,7 +36,7 @@ Nothing 3%   Check White 91%   Check Black 1%   Checkmate White 5%   Checkmate B
 
 ## 3. The network learns
 
-The network learns from 515,000 chessboards whose answer is known, 64 at a time:
+The network learns from about 2 million chessboards whose answer is known, 64 at a time:
 
 1. **Answer**: it gives its 5 probabilities (forward pass).
 2. **Measure the error**: the **loss** is small when it gives a high probability to the right answer, and very big when it is sure of a wrong one.
@@ -53,7 +53,9 @@ After a few epochs, the network starts to **remember** its chessboards instead o
 
 To see it, 10% of the chessboards are **put aside**. They are never learned, only used as a test after every epoch. The training keeps the epoch with the best score on them, and stops when the score stops improving (**early stopping**).
 
-The graphs of [Results](results.md) show it.
+The other weapon is **more chessboards**. A chessboard seen in a mirror, or with the board upside down and the colours swapped, keeps its answer (Check White becomes Check Black). Adding these copies makes the training set four times bigger: the network cannot remember them all, so it has to learn the rules.
+
+The graphs of [Results](results.md) show both.
 
 ## 5. The three sets of chessboards
 
