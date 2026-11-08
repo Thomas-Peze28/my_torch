@@ -7,8 +7,8 @@ repository.
 
 import pytest
 
-from scripts.prepare_dataset import (find_files, main, position_key, read_dataset,
-                                     remove_duplicates, shuffle_boards, split_boards)
+from scripts.prepare_dataset import (add_mirrors, find_files, main, mirror_fen, position_key,
+                                     read_dataset, remove_duplicates, shuffle_boards, split_boards)
 
 CHECK = "8/8/R2k4/4r1p1/8/5K2/5P2/8 b - - 7 59"
 CHECK_LATER = "8/8/R2k4/4r1p1/8/5K2/5P2/8 b - - 9 60"
@@ -59,6 +59,24 @@ def test_position_key_ignores_what_the_network_does_not_see():
 def test_remove_duplicates_keeps_the_first_board_of_each_position():
     boards = [(CHECK, "Check White"), (START, "Nothing"), (CHECK_LATER, "Check White")]
     assert remove_duplicates(boards) == [(CHECK, "Check White"), (START, "Nothing")]
+
+
+def test_mirror_fen_swaps_left_and_right():
+    assert mirror_fen("r3k2r/8/8/8/4P3/8/8/R3K2R b KQkq e3 0 1") == "r2k3r/8/8/8/3P4/8/8/R2K3R b - d3 0 1"
+    assert mirror_fen(CHECK) == "8/8/4k2R/1p1r4/8/2K5/2P5/8 b - - 7 59"
+
+
+def test_mirror_fen_twice_gives_the_same_pieces():
+    for fen in (CHECK, START, MATE):
+        assert position_key(mirror_fen(mirror_fen(fen))) == position_key(fen)
+
+
+def test_add_mirrors_keeps_the_answer_and_skips_known_positions():
+    symmetric = "8/8/8/3QQ3/8/8/8/8 w - - 0 1"
+    train = [(CHECK, "Check White"), (symmetric, "Nothing")]
+    others = [(mirror_fen(MATE), "Checkmate White")]
+    result = add_mirrors(train + [(MATE, "Checkmate White")], others)
+    assert result == train + [(MATE, "Checkmate White"), (mirror_fen(CHECK), "Check White")]
 
 
 def test_shuffle_is_the_same_for_one_seed_and_keeps_every_board():
@@ -123,6 +141,22 @@ def test_main_gives_the_same_files_every_time(dataset, tmp_path):
     main(["--dataset", str(dataset), "--output", str(second)])
     for name in ("train", "validation", "test"):
         assert read_lines(first, name) == read_lines(second, name)
+
+
+def test_mirror_only_changes_the_training_file(dataset, tmp_path):
+    plain, mirrored = tmp_path / "plain", tmp_path / "mirrored"
+    plain.mkdir()
+    mirrored.mkdir()
+    main(["--dataset", str(dataset), "--output", str(plain)])
+    main(["--dataset", str(dataset), "--output", str(mirrored), "--mirror"])
+
+    for name in ("validation", "test"):
+        assert read_lines(plain, name) == read_lines(mirrored, name)
+    train = read_lines(mirrored, "train")
+    assert set(read_lines(plain, "train")) < set(train)
+    assert len(train) == 2 * len(read_lines(plain, "train"))
+    others = {position_key(line) for name in ("validation", "test") for line in read_lines(mirrored, name)}
+    assert not {position_key(line) for line in train} & others
 
 
 def test_main_returns_84_on_a_missing_folder(tmp_path, capsys):

@@ -13,7 +13,7 @@ The analyzer reads chessboards and answers, for each one: `Nothing`, `Check Whit
 
 It does not know the rules of chess. A neural network learned the answers from 515,000 example chessboards.
 
-- **Pushed network**: `my_torch_network.nn`, **83.3%** of right answers on chessboards it has never seen.
+- **Pushed network**: `my_torch_network.nn`, **87.0%** of right answers on chessboards it has never seen.
 - **Made with**: Python and NumPy only. No PyTorch, no TensorFlow.
 
 ## Quick start
@@ -47,6 +47,7 @@ To create and train a network:
 | v0.2.1 | + better starting weights | 79.1% |
 | v0.2.2 | + Adam, bigger network | 83.8% |
 | v0.2.3 | + early stopping, much less learning by heart | 83.3% |
+| v0.3.0 | + mirrored chessboards, learning by heart halved | **87.0%** |
 
 How these choices were measured, with graphs: [Results](docs/results.md).
 

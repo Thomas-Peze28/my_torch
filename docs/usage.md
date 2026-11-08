@@ -57,7 +57,7 @@ The 5 answers are `Nothing`, `Check White`, `Check Black`, `Checkmate White` and
 10% of the chessboards are put aside and never learned. After every epoch, the network is checked on them. It keeps its best epoch and stops after 3 epochs without progress. It prints one line per epoch:
 
 ```
-Epoch 10/30: loss 0.1696, accuracy 93.2% | validation loss 0.4970, accuracy 83.9% (best)
+Epoch 12/30: loss 0.1843, accuracy 92.6% | validation loss 0.3519, accuracy 87.1% (best)
 ```
 
 | Word | Meaning |
@@ -155,15 +155,15 @@ The dataset is not in the repository. Put its folders `check/`, `checkmate/` and
 
 ```bash
 make dataset     # 5 seconds
-make train       # about 7 minutes
-make benchmark   # about 10 minutes
+make train       # about 10 minutes
+make benchmark   # about 30 minutes
 ```
 
 | Rule | What it does | Writes |
 |---|---|---|
-| `make dataset` | removes duplicates, shuffles, cuts into 3 files | `dataset/train.txt` (80%), `validation.txt` (10%), `test.txt` (10%) |
+| `make dataset` | removes duplicates, shuffles, cuts into 3 files, adds the mirror of every training chessboard | `dataset/train.txt` (80%, twice with the mirrors), `validation.txt` (10%), `test.txt` (10%) |
 | `make train` | trains `configs/chess_network.conf`, draws its graphs | `my_torch_network.nn`, `benchmarks/pushed_network*` |
-| `make benchmark` | trains the networks of `configs/benchmarks/`, draws the comparisons | `benchmarks/init.png`, `benchmarks/optimizer.png` |
+| `make benchmark` | trains the networks of `configs/benchmarks/` without mirrors, then the chess network with and without them, draws the comparisons | `benchmarks/init.png`, `optimizer.png`, `augmentation.png` |
 
 The seeds are fixed: the same commands give the same files, byte for byte.
 
